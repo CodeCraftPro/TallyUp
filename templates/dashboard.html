@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% block title %}TallyUp — Dashboard{% endblock %}
+
+{% block content %}
+<header class="mb-6 slide-up">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-3xl font-semibold tracking-tight text-white">Your Trips</h1>
+      <p class="mt-1 text-sm text-slate-400">Organize expenses by trips and occasions. Each trip can have multiple
+        events.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      {% for member in members %}
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-900/80 px-2.5 py-1.5 text-xs text-slate-200">
+        <span>{{ member.avatar }}</span>
+        <span>{{ member.name }}</span>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</header>
+
+<section class="grid gap-6 lg:grid-cols-[1fr_0.42fr]">
+  <!-- Left: Trips -->
+  <div class="space-y-6">
+    <!-- Create Trip Card -->
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-white">Create a new trip</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Start a new trip with your existing group or add new people.</p>
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('create_trip') }}" class="space-y-4" id="createTripForm">
+        <div class="grid gap-3 sm:grid-cols-12 sm:items-end">
+          <div class="sm:col-span-8">
+            <label for="trip_name" class="mb-1.5 block text-xs font-medium text-slate-300">Trip / Occasion name</label>
+            <input id="trip_name" name="trip_name" type="text" required maxlength="60"
+              placeholder="e.g. Goa Vacation, Office Lunch, Movie Night"
+              class="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3.5 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+          </div>
+          <div class="sm:col-span-4">
+            <label for="trip_date_display" class="mb-1.5 block text-xs font-medium text-slate-300">Date
+              (DD-Mon-YYYY)</label>
+            <div class="relative flex items-center">
+              <input id="trip_date_display" type="text" readonly placeholder="DD-Mon-YYYY (click to pick)"
+                class="h-11 w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/60 pl-3.5 pr-11 text-sm text-white font-medium outline-none transition placeholder:text-slate-500 focus:border-sky-400/60 hover:border-sky-400/40">
+              <input id="trip_date" name="trip_date" type="date" class="sr-only">
+              <button type="button" id="openCalendarBtn"
+                class="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 hover:text-white transition border border-sky-400/40 shadow-sm"
+                title="Choose date from calendar">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group & Members Selection -->
+        <div class="rounded-xl border border-white/5 bg-white/[0.03] p-4 space-y-3.5">
+          <input type="hidden" name="trip_roster_mode" id="tripRosterMode"
+            value="{{ 'saved_group' if groups else 'custom' }}">
+
+          <div
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-white/5 pb-2.5">
+            <div>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">Who is in this trip?</span>
+              <p class="text-[11px] text-slate-400">Pick a saved group for instant 1-click setup, or start with a fresh
+                blank slate.</p>
+            </div>
+
+            <!-- Mode Toggle Tabs -->
+            <div class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/80 p-1">
+              {% if groups %}
+              <button type="button" id="tabSavedGroup"
+                class="rounded-lg px-3 py-1 text-xs font-medium transition {{ 'bg-sky-500 text-white font-semibold shadow-sm' if groups else 'text-slate-400 hover:text-white' }}">
+                👥 Saved Group
+              </button>
+              {% endif %}
+              <button type="button" id="tabCustomGroup"
+                class="rounded-lg px-3 py-1 text-xs font-medium transition {{ 'text-slate-400 hover:text-white' if groups else 'bg-sky-500 text-white font-semibold shadow-sm' }}">
+                ✨ New / Custom Group
+              </button>
+            </div>
+          </div>
+
+          {% if groups %}
+          <!-- Tab 1: Saved Group View -->
+          <div id="savedGroupSection" class="space-y-3">
+            <div class="grid gap-2 sm:grid-cols-12 sm:items-center">
+              <div class="sm:col-span-6">
+                <label for="groupPresetSelect" class="mb-1 block text-xs font-medium text-slate-300">Choose
+                  Group</label>
+                <select id="groupPresetSelect" name="group_id"
+                  class="h-10 w-full rounded-xl border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-sky-400">
+                  {% for g in groups %}
+                  <option value="{{ g.id }}" data-members='{{ g.member_ids|tojson_safe }}' {{ 'selected' if loop.first
+                    else '' }}>
+                    {{ g.name }} ({{ g.member_ids|length }} members)
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="sm:col-span-6">
+                <label for="saved_new_members" class="mb-1 block text-xs font-medium text-slate-300">+ Add extra people
+                  to this trip (optional)</label>
+                <input id="saved_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha"
+                  class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-white/5 bg-slate-950/40 p-2.5">
+              <p class="text-[11px] font-medium text-slate-400 mb-1.5">Members included in this group:</p>
+              <div id="groupPreviewChips" class="flex flex-wrap gap-1.5"></div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Tab 2: Custom Group / Blank Slate View -->
+          <div id="customGroupSection" class="{{ 'hidden' if groups else '' }} space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-300">Select people for this trip:</span>
+              <div class="flex items-center gap-2">
+                <button type="button" id="toggleAllTripMembers"
+                  class="text-xs text-sky-400 hover:text-sky-300 transition">Select all</button>
+                <span class="text-slate-600 text-xs">·</span>
+                <button type="button" id="clearAllTripMembers"
+                  class="text-xs text-slate-400 hover:text-slate-300 transition">Clear all</button>
+              </div>
+            </div>
+
+            <!-- Existing Members Checklist (Starts unchecked in custom mode) -->
+            <div class="flex flex-wrap gap-2 pt-1" id="tripMembersList">
+              {% for member in members %}
+              <label
+                class="trip-member-chip flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-400 opacity-60 transition hover:border-sky-400/70 select-none">
+                <input type="checkbox" name="member_ids" value="{{ member.id }}"
+                  class="member-checkbox h-3.5 w-3.5 rounded border-white/20 bg-slate-900 text-sky-500 focus:ring-sky-400">
+                <span>{{ member.avatar }}</span>
+                <span class="font-medium text-white">{{ member.name }}</span>
+              </label>
+              {% endfor %}
+            </div>
+
+            <!-- Add New People to this Trip & Save Group -->
+            <div class="pt-2 border-t border-white/5 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label for="new_members" class="mb-1 block text-xs font-medium text-slate-300">+ Add new people to this
+                  trip</label>
+                <input id="new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha (comma separated)"
+                  class="h-9 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+              </div>
+              <div>
+                <label for="save_group_name" class="mb-1 block text-xs font-medium text-slate-300">Save as reusable
+                  group (optional)</label>
+                <input id="save_group_name" name="save_group_name" type="text" placeholder="e.g. Goa Vacation Gang"
+                  class="h-9 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if unused_members %}
+        <!-- Unused People Auto-Cleanup Banner -->
+        <div
+          class="rounded-xl border border-amber-400/20 bg-amber-500/[0.04] p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 text-sm">ℹ️</span>
+            <span class="text-slate-300">
+              <strong class="text-white">{{ unused_members|length }} person(s)</strong> with 0 expenses across all
+              trips:
+              <span class="text-amber-200">{% for u in unused_members %}{{ u.name }}{% if not loop.last %}, {% endif
+                %}{% endfor %}</span>
+            </span>
+          </div>
+          <form method="post" action="{{ url_for('cleanup_members') }}" class="inline">
+            <button type="submit"
+              class="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1 font-semibold text-amber-200 transition hover:bg-amber-400/20">
+              Clean Up Unused
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+        <div class="flex justify-end pt-1">
+          <button type="submit"
+            class="h-11 rounded-xl bg-sky-500 px-6 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400 active:scale-[0.99]">
+            + Create Trip
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Trip Cards -->
+    {% for trip in trips %}
+    <a href="{{ url_for('trip_view', trip_id=trip.id) }}"
+      class="block rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition hover:border-sky-400/25 hover:bg-white/[0.07] fade-in">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-4">
+          <div
+            class="flex h-14 w-14 items-center justify-center rounded-2xl {{ 'bg-slate-800 text-2xl' if trip.is_general else 'bg-gradient-to-br from-sky-500/20 to-violet-500/20 text-2xl' }}">
+            {{ '📋' if trip.is_general else '📁' }}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-lg font-semibold text-white">{{ trip.name }}</h3>
+              {% if trip.group_name %}
+              <span
+                class="rounded-md border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-medium text-sky-300">{{
+                trip.group_name }}</span>
+              {% endif %}
+            </div>
+            <p class="text-sm text-slate-400 mt-0.5">
+              {% if trip.date %}{{ trip.date|format_date }} · {% endif %}
+              {{ trip.event_count }} event{{ '' if trip.event_count == 1 else 's' }} ·
+              {{ trip.expense_count }} expense{{ '' if trip.expense_count == 1 else 's' }}
+            </p>
+            {% if trip.trip_members %}
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              {% for m in trip.trip_members %}
+              <span
+                class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-slate-950/60 px-2 py-0.5 text-[11px] text-slate-300">
+                <span>{{ m.avatar }}</span>
+                <span>{{ m.name }}</span>
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-2xl font-semibold text-white">{{ trip.total_expenses|currency }}</p>
+          <p class="text-xs text-slate-400">total spend</p>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Right: Global Balance -->
+  <aside class="space-y-6 lg:sticky lg:top-6 lg:self-start">
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-white">Overall Balance</h2>
+          <p class="mt-1 text-sm text-slate-400">Across all trips</p>
+        </div>
+        <div class="rounded-xl bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-400">Live</div>
+      </div>
+
+      <div class="space-y-3">
+        {% for row in balances %}
+        {% set status_class = 'text-emerald-300' if row.balance > 0 else ('text-rose-300' if row.balance < 0
+          else 'text-slate-300' ) %} {% set bg_class='from-emerald-400/12 to-transparent' if row.balance> 0 else
+          ('from-rose-400/12 to-transparent' if row.balance < 0 else 'from-white/5 to-transparent' ) %} <div
+            class="rounded-2xl border border-white/10 bg-gradient-to-r {{ bg_class }} p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/60 text-lg">{{
+                  row.avatar }}</div>
+                <p class="text-sm font-medium text-white">{{ row.name }}</p>
+              </div>
+              <div class="text-right">
+                {% if row.balance > 0 %}
+                <p class="text-sm font-semibold {{ status_class }}">+{{ row.balance|currency }}</p>
+                {% elif row.balance < 0 %} <p class="text-sm font-semibold {{ status_class }}">-{{
+                  (-row.balance)|currency }}</p>
+                  {% else %}
+                  <p class="text-sm font-semibold {{ status_class }}">Settled</p>
+                  {% endif %}
+              </div>
+            </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <a href="{{ url_for('settle') }}"
+      class="group mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 active:scale-[0.99]">
+      <span>View Global Settlement</span>
+      <span class="transition group-hover:translate-x-1">→</span>
+    </a>
+    </div>
+  </aside>
+</section>
+
+<script id="allMembersJson" type="application/json">{{ members|tojson_safe }}</script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const allMembers = JSON.parse(document.getElementById('allMembersJson')?.textContent || '[]');
+    const memberMap = new Map(allMembers.map(m => [m.id, m]));
+
+    const tripRosterMode = document.getElementById('tripRosterMode');
+    const tabSaved = document.getElementById('tabSavedGroup');
+    const tabCustom = document.getElementById('tabCustomGroup');
+    const savedSection = document.getElementById('savedGroupSection');
+    const customSection = document.getElementById('customGroupSection');
+    const groupSelect = document.getElementById('groupPresetSelect');
+    const previewChips = document.getElementById('groupPreviewChips');
+
+    const memberBoxes = document.querySelectorAll('.member-checkbox');
+    const toggleAllBtn = document.getElementById('toggleAllTripMembers');
+    const clearAllBtn = document.getElementById('clearAllTripMembers');
+
+    function updateGroupPreview() {
+      if (!groupSelect || !previewChips) return;
+      const opt = groupSelect.selectedOptions[0];
+      if (!opt || !opt.dataset.members) {
+        previewChips.innerHTML = '<span class="text-xs text-slate-500">No members selected.</span>';
+        return;
+      }
+      try {
+        const mids = JSON.parse(opt.dataset.members);
+        previewChips.innerHTML = mids.map(id => {
+          const m = memberMap.get(id);
+          if (!m) return '';
+          return `
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 text-xs text-sky-200">
+              <span>${m.avatar}</span>
+              <span class="font-medium text-white">${m.name}</span>
+            </span>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Error rendering group preview:', e);
+      }
+    }
+
+    if (tabSaved && tabCustom) {
+      tabSaved.addEventListener('click', () => {
+        if (tripRosterMode) tripRosterMode.value = 'saved_group';
+        tabSaved.classList.add('bg-sky-500', 'text-white', 'font-semibold', 'shadow-sm');
+        tabSaved.classList.remove('text-slate-400');
+        tabCustom.classList.remove('bg-sky-500', 'text-white', 'font-semibold', 'shadow-sm');
+        tabCustom.classList.add('text-slate-400');
+        if (savedSection) savedSection.classList.remove('hidden');
+        if (customSection) customSection.classList.add('hidden');
+      });
+
+      tabCustom.addEventListener('click', () => {
+        if (tripRosterMode) tripRosterMode.value = 'custom';
+        tabCustom.classList.add('bg-sky-500', 'text-white', 'font-semibold', 'shadow-sm');
+        tabCustom.classList.remove('text-slate-400');
+        tabSaved.classList.remove('bg-sky-500', 'text-white', 'font-semibold', 'shadow-sm');
+        tabSaved.classList.add('text-slate-400');
+        if (customSection) customSection.classList.remove('hidden');
+        if (savedSection) savedSection.classList.add('hidden');
+      });
+    }
+
+    if (groupSelect) {
+      groupSelect.addEventListener('change', updateGroupPreview);
+      updateGroupPreview();
+    }
+
+    function updateChipStyle(box) {
+      const chip = box.closest('.trip-member-chip');
+      if (!chip) return;
+      if (box.checked) {
+        chip.classList.add('border-sky-400/40', 'bg-sky-400/10', 'text-white');
+        chip.classList.remove('border-white/10', 'bg-white/5', 'text-slate-400', 'opacity-60');
+      } else {
+        chip.classList.remove('border-sky-400/40', 'bg-sky-400/10', 'text-white');
+        chip.classList.add('border-white/10', 'bg-white/5', 'text-slate-400', 'opacity-60');
+      }
+    }
+
+    memberBoxes.forEach(box => {
+      box.addEventListener('change', () => updateChipStyle(box));
+      updateChipStyle(box);
+    });
+
+    if (toggleAllBtn) {
+      toggleAllBtn.addEventListener('click', () => {
+        memberBoxes.forEach(box => { box.checked = true; updateChipStyle(box); });
+      });
+    }
+
+    if (clearAllBtn) {
+      clearAllBtn.addEventListener('click', () => {
+        memberBoxes.forEach(box => { box.checked = false; updateChipStyle(box); });
+      });
+    }
+
+    // ── High-Contrast Date Picker & DD-Mon-YYYY Formatter ──
+    const dateInput = document.getElementById('trip_date');
+    const dateDisplay = document.getElementById('trip_date_display');
+    const openCalBtn = document.getElementById('openCalendarBtn');
+
+    function formatDateToDDMonYYYY(val) {
+      if (!val) return '';
+      const parts = val.split('-');
+      if (parts.length === 3) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(parts[1], 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) {
+          return `${parts[2]}-${months[mIdx]}-${parts[0]}`;
+        }
+      }
+      return val;
+    }
+
+    if (dateInput && dateDisplay) {
+      const triggerPicker = () => {
+        try {
+          if (typeof dateInput.showPicker === 'function') {
+            dateInput.showPicker();
+          } else {
+            dateInput.focus();
+          }
+        } catch (e) {
+          dateInput.focus();
+        }
+      };
+
+      dateDisplay.addEventListener('click', triggerPicker);
+      if (openCalBtn) openCalBtn.addEventListener('click', triggerPicker);
+
+      dateInput.addEventListener('change', () => {
+        dateDisplay.value = formatDateToDDMonYYYY(dateInput.value);
+      });
+    }
+  });
+</script>
+{% endblock %}

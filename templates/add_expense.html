@@ -1,0 +1,2804 @@
+{% extends "base.html" %}
+{% block title %}TallyUp — {{ 'Edit Expense' if is_edit else 'Add Expense' }}{% endblock %}
+
+{% block content %}
+<header class="mb-6 slide-up">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <a href="{{ url_for('trip_view', trip_id=trip.id) }}"
+        class="mb-2 inline-flex items-center gap-1 text-sm text-slate-400 transition hover:text-sky-300">← Back to {{
+        trip.name }}</a>
+      <h1 class="text-3xl font-semibold tracking-tight text-white">{{ 'Edit Expense' if is_edit else 'Add Expense' }}
+      </h1>
+    </div>
+  </div>
+</header>
+
+<!-- Mode Tabs -->
+{% if not is_edit %}
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3 fade-in">
+  <div class="flex gap-2">
+    <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=request.args.get('event_id', '')) }}"
+      class="mode-tab rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold transition {{ 'active' if mode == 'simple' else 'bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/[0.08]' }}">
+      💰 Simple Split
+    </a>
+    <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=request.args.get('event_id', '')) }}"
+      class="mode-tab rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold transition {{ 'active border-amber-400/40 !bg-amber-400/10 !text-amber-200' if mode == 'restaurant' else 'bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/[0.08]' }}">
+      🍽️ Restaurant / Dineout
+    </a>
+  </div>
+
+  <button type="button" id="openScannerBtn"
+    class="trigger-scanner-btn inline-flex items-center gap-2 rounded-2xl border border-indigo-400/40 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-sky-500/20 px-4 py-3 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-indigo-500/10 transition hover:scale-[1.02] hover:border-indigo-400 active:scale-95">
+    <span class="text-base sm:text-lg">🧾</span>
+    <span>Scan Any Receipt</span>
+    <span class="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-medium text-emerald-300">Free &
+      Local</span>
+  </button>
+</div>
+
+<!-- Instant Scanner Quick Banner -->
+<div
+  class="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-sky-400/20 bg-sky-500/[0.06] px-4 py-3 text-xs text-sky-200 fade-in">
+  <div class="flex items-center gap-2.5">
+    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/20 text-base">⚡</span>
+    <span>
+      <strong>Have a paper bill or photo?</strong> Scan dining bills, fuel pumps, groceries, cabs or retail in ~0.7s
+      with zero cloud cost.
+    </span>
+  </div>
+  <button type="button"
+    class="trigger-scanner-btn shrink-0 font-semibold text-sky-300 hover:text-white hover:underline transition">
+    Scan Receipt →
+  </button>
+</div>
+{% else %}
+<div class="mb-6 flex items-center justify-between gap-2 fade-in">
+  <span class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300">
+    Mode: {{ '🍽️ Restaurant Bill' if mode == 'restaurant' else '💰 Simple Expense' }}
+  </span>
+  <button type="button"
+    class="trigger-scanner-btn inline-flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/20 px-3.5 py-1.5 text-xs font-semibold text-indigo-200 hover:bg-indigo-500/30 transition">
+    <span>🧾</span>
+    <span>Re-scan Receipt</span>
+  </button>
+</div>
+{% endif %}
+
+{% if mode == 'simple' %}
+<!-- ========== SIMPLE MODE (2-COLUMN HIGH-DENSITY LAYOUT) ========== -->
+<form method="post" id="simpleExpenseForm" class="fade-in"
+  action="{{ url_for('edit_expense', trip_id=trip.id, expense_id=expense.id) if is_edit else url_for('add_expense', trip_id=trip.id, mode='simple') }}">
+  <input type="hidden" name="mode" value="simple">
+  <input type="hidden" name="items_data" id="itemsData" value="[]">
+
+  <div class="grid gap-5 lg:grid-cols-12 lg:items-start">
+    <!-- LEFT COLUMN: Inputs (7 cols) -->
+    <div class="space-y-4 lg:col-span-7">
+      <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💰</span>
+            <h2 class="text-base font-semibold text-white">{{ 'Edit Simple Expense' if is_edit else 'Simple Expense' }}
+            </h2>
+          </div>
+          <span class="text-xs text-slate-400">{{ trip.name }}</span>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="s_event_id" class="mb-1.5 block text-xs font-medium text-slate-300">Event</label>
+            <select id="s_event_id" name="event_id"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-sky-400/60">
+              {% for event in events %}
+              <option value="{{ event.id }}" {% if (is_edit and target_event and target_event.id==event.id) or (not
+                is_edit and request.args.get('event_id')==event.id) %}selected{% elif loop.first %}selected{% endif %}>
+                {{ event_types.get(event.type, event_types.other).icon }} {{ event.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="s_description" class="mb-1.5 block text-xs font-medium text-slate-300">Description</label>
+            <input id="s_description" name="description" type="text" required maxlength="80"
+              placeholder="e.g. Pizza, Uber, Groceries, Hotel..." value="{{ expense.description if is_edit else '' }}"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="s_amount" class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Total Amount</span>
+            </label>
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+              <input id="s_amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"
+                value="{{ expense.amount if is_edit else '' }}"
+                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+            </div>
+          </div>
+
+          <div>
+            <label for="s_date_display" class="mb-1.5 block text-xs font-medium text-slate-300">Date
+              (DD-Mon-YYYY)</label>
+            <div class="relative flex items-center">
+              <input id="s_date_display" type="text" readonly placeholder="DD-Mon-YYYY (click to pick)"
+                value="{{ (expense.date|format_date) if (is_edit and expense.get('date')) else '' }}"
+                class="h-10 w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/70 pl-3 pr-10 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60 hover:border-sky-400/40">
+              <input id="s_date" name="date" type="date"
+                value="{{ expense.date if (is_edit and expense.get('date')) else '' }}" class="sr-only">
+              <button type="button" id="s_openCalendarBtn"
+                class="absolute right-1 flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 hover:text-white transition border border-sky-400/40 shadow-sm"
+                title="Choose date from calendar">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="s_paid_by" class="mb-1.5 block text-xs font-medium text-slate-300">Who paid?</label>
+            <select id="s_paid_by" name="paid_by"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-sky-400/60">
+              {% for member in members %}
+              <option value="{{ member.id }}" data-name="{{ member.name }}" data-upi="{{ member.get('upi_id', '') }}" {%
+                if is_edit and expense.paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{%
+                endif %}>
+                {{ member.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="s_payer_upi"
+              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Payer UPI ID</span>
+              <span class="text-[10px] text-emerald-400 font-normal">Optional</span>
+            </label>
+            <input id="s_payer_upi" name="payer_upi" type="text" placeholder="e.g. name@oksbi"
+              value="{{ expense.payer_upi if is_edit else '' }}"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+          </div>
+        </div>
+
+        <!-- Treat Toggle -->
+        <div class="rounded-xl border border-purple-400/30 bg-purple-500/10 p-3 transition hover:bg-purple-500/15">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" id="s_is_treat" name="is_treat" value="true"
+              class="h-4 w-4 rounded border-white/20 bg-slate-900 text-purple-500 focus:ring-purple-400" {{ 'checked' if
+              (is_edit and expense.get('is_treat')) else '' }}>
+            <div>
+              <span class="text-xs font-semibold text-purple-200 flex items-center gap-1.5">
+                <span>🎁</span>
+                <span>Mark as Treat (You treat everyone · Friends owe ₹0.00)</span>
+              </span>
+              <p class="text-[11px] text-purple-300/80 mt-0.5">Records total expense in party finances, but friends
+                don't owe any money.</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Consumers -->
+        <fieldset class="pt-1">
+          <div class="mb-2 flex items-center justify-between">
+            <legend class="text-xs font-semibold uppercase tracking-wider text-slate-400">Split among</legend>
+            <button type="button" id="toggleAllSimple"
+              class="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition">Toggle all</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {% for member in members %}
+            {% set is_checked = (not is_edit) or (expense and member.id in expense.consumers) %}
+            <label
+              class="consumer-chip group flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 transition hover:border-sky-400/30 hover:bg-white/[0.08] {{ 'border-sky-400/40 bg-sky-400/10' if is_checked else '' }}">
+              <span class="flex items-center gap-2 min-w-0">
+                <span class="text-base">{{ member.avatar }}</span>
+                <span class="text-xs font-medium text-white truncate">{{ member.name }}</span>
+              </span>
+              <input type="checkbox" name="consumers" value="{{ member.id }}"
+                class="consumer-box h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-500 focus:ring-sky-400 ml-1.5"
+                {{ 'checked' if is_checked else '' }}>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Sticky Live Receipt (5 cols) -->
+    <div class="space-y-4 lg:col-span-5 lg:sticky lg:top-5">
+      <div id="simpleSummaryCard"
+        class="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/95 p-5 backdrop-blur-xl shadow-2xl space-y-3.5">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="flex h-2 w-2 rounded-full bg-sky-400 animate-pulse"></span>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-white">Live Split Receipt</h3>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="s_viewQrBtn"
+              class="hidden rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
+              title="View UPI QR Code">
+              QR Code
+            </button>
+            <button type="button" id="s_copySummaryBtn"
+              class="group inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-200"
+              title="Copy breakdown">
+              <span id="s_copyText">Copy Breakdown</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-300 font-medium">Total Amount</span>
+            <span id="s_sumAmount" class="text-white font-bold text-base">₹0.00</span>
+          </div>
+
+          <div class="flex justify-between text-slate-400">
+            <span>Paid by</span>
+            <span id="s_sumPayer" class="text-slate-200 font-medium">-</span>
+          </div>
+
+          <div class="rounded-xl border border-sky-400/20 bg-sky-500/[0.05] p-3 mt-3 space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-semibold text-sky-300 uppercase tracking-wider">Per Person Share</span>
+              <span id="s_sumPerPerson" class="text-base font-extrabold text-sky-200">₹0.00</span>
+            </div>
+            <p id="s_splitBreakdown" class="text-[11px] text-slate-400"></p>
+          </div>
+
+          <!-- Who Owes Whom List -->
+          <div class="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.04] p-3 space-y-2 mt-3">
+            <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Who Owes Whom</span>
+              <span id="s_owedBadge"
+                class="text-[10px] rounded px-1.5 py-0.5 bg-emerald-400/10 text-emerald-300 font-medium">0 debts</span>
+            </div>
+            <div id="s_owedList" class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5"></div>
+          </div>
+
+          <!-- Live ASCII Receipt (Monospace Thermal Preview) -->
+          <div class="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <span>🧾</span> ASCII Thermal Receipt
+              </span>
+              <span class="text-[10px] text-slate-500 font-mono">42-col Receipt Font</span>
+            </div>
+            <pre id="s_asciiReceiptBox"
+              class="p-3.5 rounded-xl border border-white/10 bg-slate-950 text-slate-200 receipt-font text-[11px] leading-relaxed overflow-x-auto select-all shadow-inner"></pre>
+          </div>
+        </div>
+
+        <!-- Primary Submit Button -->
+        <button type="submit"
+          class="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 p-3.5 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400 active:scale-[0.99]">
+          <span>{{ 'Save Changes' if is_edit else 'Add Expense' }}</span>
+          <span class="transition group-hover:translate-x-1">→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% else %}
+<!-- ========== RESTAURANT / DINEOUT MODE ========== -->
+<form method="post" id="restaurantForm" class="fade-in"
+  action="{{ url_for('edit_expense', trip_id=trip.id, expense_id=expense.id) if is_edit else url_for('add_expense', trip_id=trip.id, mode='restaurant') }}">
+  <input type="hidden" name="mode" value="restaurant">
+  <input type="hidden" name="items_data" id="itemsData" value="[]">
+
+  <div class="grid gap-5 lg:grid-cols-12 lg:items-start">
+
+    <!-- LEFT COLUMN: Input Panels (7 cols) -->
+    <div class="space-y-4 lg:col-span-7">
+
+      <!-- Panel 1: Bill & Table Members -->
+      <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🍽️</span>
+            <h2 class="text-base font-semibold text-white">{{ 'Edit Restaurant Bill' if is_edit else 'Bill & Diners' }}
+            </h2>
+          </div>
+          <span class="text-xs text-slate-400">{{ trip.name }}</span>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="r_event_id" class="mb-1.5 block text-xs font-medium text-slate-300">Event</label>
+            <select id="r_event_id" name="event_id"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-amber-400/60">
+              {% for event in events %}
+              <option value="{{ event.id }}" {% if (is_edit and target_event and target_event.id==event.id) or (not
+                is_edit and request.args.get('event_id')==event.id) %}selected{% elif loop.first %}selected{% endif %}>
+                {{ event_types.get(event.type, event_types.other).icon }} {{ event.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="r_description" class="mb-1.5 block text-xs font-medium text-slate-300">Description /
+              Restaurant</label>
+            <input id="r_description" name="description" type="text" required maxlength="80"
+              placeholder="e.g. Paradise Biryani, Mainland China..."
+              value="{{ expense.description if is_edit else '' }}"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="r_total_bill"
+              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Total Bill Amount</span>
+              <span class="text-[11px] text-sky-400 font-normal">incl. taxes</span>
+            </label>
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+              <input id="r_total_bill" name="total_bill" type="number" min="0.01" step="0.01" required
+                placeholder="e.g. 2909" value="{{ expense.total_bill if is_edit else '' }}"
+                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+            </div>
+          </div>
+
+          <div>
+            <label for="r_date_display" class="mb-1.5 block text-xs font-medium text-slate-300">Date
+              (DD-Mon-YYYY)</label>
+            <div class="relative flex items-center">
+              <input id="r_date_display" type="text" readonly placeholder="DD-Mon-YYYY (click to pick)"
+                value="{{ (expense.date|format_date) if (is_edit and expense.get('date')) else '' }}"
+                class="h-10 w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/70 pl-3 pr-10 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60 hover:border-amber-400/40">
+              <input id="r_date" name="date" type="date"
+                value="{{ expense.date if (is_edit and expense.get('date')) else '' }}" class="sr-only">
+              <button type="button" id="r_openCalendarBtn"
+                class="absolute right-1 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 hover:text-white transition border border-amber-400/40 shadow-sm"
+                title="Choose date from calendar">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label for="r_paid_by" class="mb-1.5 block text-xs font-medium text-slate-300">Who paid the bill?</label>
+            <select id="r_paid_by" name="paid_by"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-amber-400/60">
+              {% for member in members %}
+              <option value="{{ member.id }}" data-name="{{ member.name }}" data-upi="{{ member.get('upi_id', '') }}" {%
+                if is_edit and expense.paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{%
+                endif %}>
+                {{ member.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="r_payer_upi"
+              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Payer UPI ID</span>
+              <span class="text-[10px] text-emerald-400 font-normal">Optional</span>
+            </label>
+            <input id="r_payer_upi" name="payer_upi" type="text" placeholder="e.g. name@oksbi"
+              value="{{ expense.payer_upi if is_edit else '' }}"
+              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+          </div>
+        </div>
+
+        <!-- Treat Toggle -->
+        <div class="rounded-xl border border-purple-400/30 bg-purple-500/10 p-3 transition hover:bg-purple-500/15">
+          <label class="flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" id="r_is_treat" name="is_treat" value="true"
+              class="h-4 w-4 rounded border-white/20 bg-slate-900 text-purple-500 focus:ring-purple-400" {{ 'checked' if
+              (is_edit and expense.get('is_treat')) else '' }}>
+            <div>
+              <span class="text-xs font-semibold text-purple-200 flex items-center gap-1.5">
+                <span>🎁</span>
+                <span>Mark as Treat (You treat everyone · Friends owe ₹0.00)</span>
+              </span>
+              <p class="text-[11px] text-purple-300/80 mt-0.5">Records the entire restaurant bill in trip finances, but
+                diners' table share is ₹0.00.</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Table Diners -->
+        <fieldset class="pt-1">
+          <div class="mb-2 flex items-center justify-between">
+            <legend class="text-xs font-semibold uppercase tracking-wider text-slate-400">Who was at the table?</legend>
+            <button type="button" id="toggleAllRestaurant"
+              class="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition">Toggle all</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {% for member in members %}
+            {% set is_checked = (not is_edit) or (expense and member.id in expense.consumers) %}
+            <label
+              class="consumer-chip group flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 transition hover:border-amber-400/30 hover:bg-white/[0.08] {{ 'border-amber-400/40 bg-amber-400/10' if is_checked else '' }}">
+              <span class="flex items-center gap-2 min-w-0">
+                <span class="text-base">{{ member.avatar }}</span>
+                <span class="text-xs font-medium text-white truncate">{{ member.name }}</span>
+              </span>
+              <input type="checkbox" name="consumers" value="{{ member.id }}"
+                class="consumer-box h-4 w-4 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-400 ml-1.5"
+                {{ 'checked' if is_checked else '' }}>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- Panel 2: Taxes, Service Charge & Discounts -->
+      <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl space-y-4">
+        <div class="flex items-center gap-2 border-b border-white/5 pb-2.5">
+          <span class="text-base">🏷️</span>
+          <div>
+            <h3 class="text-sm font-semibold text-white">Paper Bill Breakdown & App Discounts</h3>
+            <p class="text-[10px] text-slate-400">Match the exact Service Charge & GST printed on your paper bill</p>
+          </div>
+        </div>
+
+        <!-- Section A: Paper Bill Charges (Service Charge & Taxes) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Service Charge from Paper Bill -->
+          <div>
+            <label for="r_service_charge"
+              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Service Charge</span>
+              <span class="text-[10px] text-slate-400">from bill (optional)</span>
+            </label>
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+              <input id="r_service_charge" name="service_charge" type="number" min="0" step="0.01"
+                value="{{ expense.service_charge if is_edit else '0' }}" placeholder="e.g. 181.79"
+                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60">
+            </div>
+          </div>
+
+          <!-- Taxes & GST (Enter % or Exact Amount) -->
+          <div>
+            <label for="r_tax_amt" class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Taxes & GST</span>
+              <span id="taxPreview" class="text-[11px] text-teal-400 font-medium"></span>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="relative">
+                <input id="r_tax_pct" name="tax_percent" type="number" min="0" max="100" step="0.01"
+                  value="{{ expense.tax_percent if is_edit else '5' }}" placeholder="5"
+                  class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-2.5 pr-6 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400/60">
+                <span
+                  class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-slate-400">%</span>
+              </div>
+              <div class="relative">
+                <span
+                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+                <input id="r_tax_amt" name="tax_amount" type="number" min="0" step="0.01"
+                  value="{{ expense.tax_amount if is_edit else '0' }}" placeholder="e.g. 129.86"
+                  class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400/60">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section B: App Discounts & Convenience Fee (Dineout / Zomato) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/5">
+          <!-- Offer Discount -->
+          <div>
+            <label for="r_discount" class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Offer Discount (Dineout / Zomato)</span>
+              <span id="discountPreview" class="text-[11px] text-emerald-400 font-medium"></span>
+            </label>
+            <div class="relative">
+              <input id="r_discount" name="discount_percent" type="number" min="0" max="100" step="0.1"
+                value="{{ expense.discount_percent if is_edit else '0' }}" placeholder="e.g. 10"
+                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 pr-8 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/60">
+              <span
+                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">%</span>
+            </div>
+          </div>
+
+          <!-- Convenience Fee -->
+          <div>
+            <label for="r_convenience_fee"
+              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
+              <span>Convenience Fee (App Fee)</span>
+              <span class="text-[10px] text-slate-400">Dineout / app fee</span>
+            </label>
+            <div class="relative">
+              <span
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+              <input id="r_convenience_fee" name="convenience_fee" type="number" min="0" step="0.01"
+                value="{{ expense.convenience_fee if is_edit else '0' }}" placeholder="e.g. 109"
+                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+            </div>
+          </div>
+        </div>
+
+        <!-- Tax & Charges Split Method -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5">
+          <span class="text-xs text-slate-400">Tax & Charges splitting:</span>
+          <div class="flex rounded-xl border border-white/10 bg-white/5 p-1 gap-1">
+            <label
+              class="tax-split-chip flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition {{ 'border border-teal-400/40 bg-teal-400/10 text-teal-200' if (not is_edit or expense.tax_split_method == 'equal') else 'border border-transparent text-slate-400 hover:text-white' }}">
+              <input type="radio" name="tax_split_method" value="equal" class="hidden" {{ 'checked' if (not is_edit or
+                expense.tax_split_method=='equal' ) else '' }}>
+              <span>Split Taxes Equally</span>
+            </label>
+            <label
+              class="tax-split-chip flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition {{ 'border border-teal-400/40 bg-teal-400/10 text-teal-200' if (is_edit and expense.tax_split_method == 'proportional') else 'border border-transparent text-slate-400 hover:text-white' }}">
+              <input type="radio" name="tax_split_method" value="proportional" class="hidden" {{ 'checked' if (is_edit
+                and expense.tax_split_method=='proportional' ) else '' }}>
+              <span>Proportional to Items</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Cover Charge Settlement & Coins (Progressive Disclosure Collapsible) -->
+      <details id="extrasDetails"
+        class="group rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl transition open:border-violet-400/30"
+        {{ 'open' if (is_edit and (expense.cover_charge_total or expense.dineout_coins)) else '' }}>
+        <summary
+          class="flex cursor-pointer items-center justify-between p-4 text-xs font-semibold text-slate-300 hover:text-white select-none">
+          <span class="flex items-center gap-2">
+            <span>🎫</span>
+            <span>Cover Charge Settlement & DineCoins (Optional)</span>
+          </span>
+          <span class="text-slate-500 transition-transform group-open:rotate-180">▼</span>
+        </summary>
+        <div class="p-4 pt-0 space-y-3.5 border-t border-white/5">
+          <!-- Cover Charge Inputs -->
+          <div class="grid gap-3 sm:grid-cols-3 pt-3">
+            <div>
+              <label for="r_cover_total" class="mb-1 block text-xs text-slate-300">Cover charge settlement</label>
+              <div class="relative">
+                <span
+                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+                <input id="r_cover_total" name="cover_charge_total" type="number" min="0" step="1"
+                  value="{{ expense.cover_charge_total if is_edit else '0' }}" placeholder="0"
+                  class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none focus:border-violet-400/60">
+              </div>
+            </div>
+            <div>
+              <label for="r_cover_pp" class="mb-1 block text-xs text-slate-300">OR per-person</label>
+              <div class="relative">
+                <span
+                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+                <input id="r_cover_pp" name="cover_charge_per_person" type="number" min="0" step="1"
+                  value="{{ expense.cover_charge_per_person if is_edit else '0' }}" placeholder="0"
+                  class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none focus:border-violet-400/60">
+              </div>
+            </div>
+            <div>
+              <label for="r_cover_paid_by" class="mb-1 block text-xs text-slate-300">Booked by</label>
+              <select id="r_cover_paid_by" name="cover_charge_paid_by"
+                class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 px-2 text-xs text-white outline-none focus:border-violet-400/60">
+                {% for member in members %}
+                <option value="{{ member.id }}" {% if is_edit and expense.cover_charge_paid_by==member.id %}selected{%
+                  elif not is_edit and loop.first %}selected{% endif %}>
+                  {{ member.avatar }} {{ member.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Coins Inputs -->
+          <div class="grid gap-3 sm:grid-cols-3 pt-2 border-t border-white/5">
+            <div>
+              <label for="r_coins" class="mb-1 block text-xs text-slate-300">Coins used</label>
+              <div class="relative">
+                <span
+                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+                <input id="r_coins" name="dineout_coins" type="number" min="0" step="1"
+                  value="{{ expense.dineout_coins if is_edit else '0' }}" placeholder="0"
+                  class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none focus:border-amber-400/60">
+              </div>
+            </div>
+            <div>
+              <label for="r_coins_by" class="mb-1 block text-xs text-slate-300">Whose coins?</label>
+              <select id="r_coins_by" name="dineout_coins_by"
+                class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 px-2 text-xs text-white outline-none focus:border-amber-400/60">
+                {% for member in members %}
+                <option value="{{ member.id }}" {% if is_edit and expense.dineout_coins_by==member.id %}selected{% elif
+                  not is_edit and loop.first %}selected{% endif %}>
+                  {{ member.avatar }} {{ member.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="flex items-end pb-0.5">
+              <label
+                class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-slate-300 hover:border-amber-400/30">
+                <input type="checkbox" name="include_coins_in_split" id="r_include_coins"
+                  class="h-4 w-4 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-400" {{ 'checked'
+                  if (is_edit and expense.include_coins_in_split) else '' }}>
+                <span>Gift coins to group</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 4: Itemized Split (Collapsible) -->
+      <details id="itemizedDetails"
+        class="group rounded-2xl border border-sky-400/20 bg-slate-900/80 backdrop-blur-xl transition open:border-sky-400/40"
+        {{ 'open' if (is_edit and expense and expense.get('items') and expense.get('items')|length> 0) else '' }}>
+        <summary
+          class="flex cursor-pointer items-center justify-between p-4 text-xs font-semibold text-sky-200 hover:text-white select-none">
+          <span class="flex items-center gap-2">
+            <span>📝</span>
+            <span>Itemized Split (Optional)</span>
+          </span>
+          <div class="flex items-center gap-2">
+            <span id="itemsSummary" class="text-[11px] text-slate-400">Items: <strong id="itemsTotalDisplay"
+                class="text-white">₹0.00</strong></span>
+            <span class="text-slate-500 transition-transform group-open:rotate-180">▼</span>
+          </div>
+        </summary>
+        <div id="itemSection" class="p-4 pt-0 space-y-3 border-t border-white/5">
+          <p class="text-xs text-slate-400 pt-3">Add dishes and check who shared each dish for fair proportional
+            splitting.</p>
+          <div id="itemsList" class="space-y-2.5"></div>
+          <div class="flex items-center justify-between pt-1">
+            <button type="button" id="addItemBtn"
+              class="inline-flex items-center gap-1.5 rounded-xl bg-sky-500/15 border border-sky-400/40 px-3 py-1.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/25">
+              <span>+ Add Item</span>
+            </button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- RIGHT COLUMN: Sticky Live Receipt & Actions (5 cols) -->
+    <div class="space-y-4 lg:col-span-5 lg:sticky lg:top-5">
+      <div id="billSummary"
+        class="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/95 p-5 backdrop-blur-xl shadow-2xl space-y-3.5">
+
+        <!-- Header with Live Indicator & Action Buttons -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-white">Live Split Receipt</h3>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="viewQrBtn"
+              class="hidden rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
+              title="View UPI QR Code">
+              QR Code
+            </button>
+            <button type="button" id="copySummaryBtn"
+              class="group inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-200"
+              title="Copy detailed calculation breakdown">
+              <span id="copyText">Copy Breakdown</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Receipt Rows -->
+        <div class="space-y-2 text-xs" id="summaryContent">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-300 font-medium">Total Bill <span class="text-[11px] text-sky-400 font-normal">(tax
+                incl.)</span></span>
+            <span id="sumBill" class="text-white font-bold text-base">₹0.00</span>
+          </div>
+
+          <!-- Bill Breakdown Box -->
+          <div id="taxBreakdownBox"
+            class="rounded-xl border border-teal-400/20 bg-teal-500/[0.04] p-2.5 space-y-1 text-[11px] transition">
+            <div class="flex justify-between text-slate-400">
+              <span>↳ Food Subtotal (pre-tax)</span>
+              <span id="sumFoodSubtotal" class="text-slate-300 font-medium">₹0.00</span>
+            </div>
+            <div id="sumServiceChargeRow" class="hidden flex justify-between text-slate-400">
+              <span>↳ Service Charge</span>
+              <span id="sumServiceCharge" class="text-violet-300 font-medium">₹0.00</span>
+            </div>
+            <div id="sumTaxIncludedRow" class="flex justify-between text-slate-400">
+              <span>↳ Taxes & GST included</span>
+              <span id="sumTaxIncluded" class="text-teal-300 font-medium">₹0.00</span>
+            </div>
+          </div>
+
+          <div id="sumDiscountRow" class="flex justify-between text-slate-400">
+            <span>Offer discount</span>
+            <span id="sumDiscount" class="text-emerald-300 font-medium">-₹0.00</span>
+          </div>
+
+          <div id="sumFeeRow" class="hidden flex justify-between text-slate-400">
+            <span>Convenience fee</span>
+            <span id="sumFee" class="text-amber-200/90 font-medium">+₹0.00</span>
+          </div>
+
+          <div class="flex justify-between text-slate-200 font-semibold border-t border-white/5 pt-2">
+            <span>Net Bill to Split</span>
+            <span id="sumNetBill" class="text-white">₹0.00</span>
+          </div>
+
+          <div id="sumCoverRow" class="flex justify-between text-slate-400">
+            <span>Cover charge settlement</span>
+            <span id="sumCover" class="text-violet-300">-₹0.00</span>
+          </div>
+
+          <div id="sumCoinsRow" class="flex justify-between text-slate-400">
+            <span>DineCoins used</span>
+            <span id="sumCoins" class="text-amber-300">-₹0.00</span>
+          </div>
+
+          <div
+            class="flex justify-between items-center border-t border-white/10 pt-2 text-xs font-semibold text-slate-200">
+            <span>Paid at restaurant table</span>
+            <span id="sumFinal" class="text-white text-sm font-bold">₹0.00</span>
+          </div>
+
+          <!-- Split Preview Box -->
+          <div class="rounded-xl border border-sky-400/20 bg-sky-500/[0.05] p-3 mt-3">
+            <!-- Equal Split View -->
+            <div id="equalSplitContainer" class="space-y-0.5">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-semibold text-sky-300 uppercase tracking-wider">Per Person Share</span>
+                <span id="sumPerPerson" class="text-base font-extrabold text-sky-200">₹0.00</span>
+              </div>
+              <p id="equalSplitBreakdown" class="text-[11px] text-slate-400"></p>
+            </div>
+
+            <!-- Itemized Split View -->
+            <div id="itemizedSplitContainer" class="hidden space-y-2 pt-1">
+              <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
+                <span class="text-[11px] uppercase tracking-wider font-semibold text-amber-300">Itemized
+                  Breakdown</span>
+                <span class="text-[10px] text-slate-400" id="itemizedRatioNote"></span>
+              </div>
+              <div id="itemizedSharesList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+
+          <!-- Table Cash Settlement -->
+          <div id="tableSettlementBox"
+            class="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.04] p-3 space-y-2 mt-3">
+            <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Who Pays What at
+                Table</span>
+              <span id="tableSettlementBadge"
+                class="text-[10px] rounded px-1.5 py-0.5 bg-emerald-400/10 text-emerald-300 font-medium">Table bill:
+                ₹0.00</span>
+            </div>
+            <div id="tableSettlementList" class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5"></div>
+            <p id="tableSettlementNote" class="text-[10px] text-slate-400 pt-1 border-t border-white/5"></p>
+          </div>
+
+          <!-- Live ASCII Receipt (Monospace Thermal Preview) -->
+          <div class="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <span>🧾</span> ASCII Thermal Receipt
+              </span>
+              <span class="text-[10px] text-slate-500 font-mono">42-col Receipt Font</span>
+            </div>
+            <pre id="r_asciiReceiptBox"
+              class="p-3.5 rounded-xl border border-white/10 bg-slate-950 text-slate-200 receipt-font text-[11px] leading-relaxed overflow-x-auto select-all shadow-inner"></pre>
+          </div>
+        </div>
+
+        <!-- Primary Action Button -->
+        <button type="submit"
+          class="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 p-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/20 transition hover:from-amber-400 hover:to-orange-400 active:scale-[0.99]">
+          <span>{{ 'Save Changes' if is_edit else 'Add Restaurant Bill' }}</span>
+          <span class="transition group-hover:translate-x-1">→</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+{% endif %}
+
+<!-- QR Code Popup Modal -->
+<div id="qrModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+  <div
+    class="relative w-full max-w-sm rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl text-center space-y-4">
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <h3 class="text-sm font-bold uppercase tracking-wider text-white">Scan & Pay via UPI</h3>
+      <button type="button" id="closeQrModal" class="text-slate-400 hover:text-white transition text-lg px-2">✕</button>
+    </div>
+    <div class="rounded-2xl bg-white p-4 shadow-xl inline-block mx-auto">
+      <img id="qrModalImg" src="" alt="UPI QR Code" class="h-52 w-52 rounded-lg mx-auto object-contain">
+    </div>
+    <div>
+      <p class="text-xs font-semibold text-white" id="qrModalName"></p>
+      <p class="text-lg font-extrabold text-emerald-400" id="qrModalAmount"></p>
+      <p class="text-xs font-mono text-slate-300 mt-1 truncate" id="qrModalUpi"></p>
+    </div>
+    <div class="space-y-2 pt-1">
+      <a id="qrModalDeepLink" href="#"
+        class="block w-full rounded-xl bg-emerald-500 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition">
+        Open UPI App →
+      </a>
+      <button type="button" id="copyModalUpiBtn"
+        class="w-full rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 transition">
+        Copy UPI ID
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Scanner Modal (100% Free & Local RapidOCR) -->
+<div id="receiptScannerModal"
+  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+  <div
+    class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-900/90">
+      <div class="flex items-center gap-3">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-lg shadow-inner">
+          🧾
+        </div>
+        <div>
+          <h3 class="text-base font-semibold text-white">Smart Receipt Scanner</h3>
+          <p class="text-xs text-slate-400">100% Free & Local · Works with Dining, Groceries, Fuel, Cabs & Retail</p>
+        </div>
+      </div>
+      <button type="button" id="closeScannerModalBtn"
+        class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition"
+        title="Close">
+        ✕
+      </button>
+    </div>
+
+    <!-- Modal Body (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-4">
+
+      <!-- Dropzone State (Default) -->
+      <div id="scannerDropzoneState" class="space-y-4">
+        <div id="receiptDropzone"
+          class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sky-400/30 bg-sky-500/[0.03] p-8 text-center transition hover:border-sky-400/60 hover:bg-sky-500/[0.06] cursor-pointer">
+          <input type="file" id="receiptFileInput" accept="image/*" class="sr-only">
+          <div
+            class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/10 text-3xl text-sky-400 transition group-hover:scale-110">
+            🧾
+          </div>
+          <p class="text-sm font-semibold text-white">Click to upload or drag & drop receipt photo</p>
+          <p class="mt-1 text-xs text-slate-400">Supports JPG, PNG, WEBP · RapidOCR local extraction</p>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <span
+              class="rounded-full bg-emerald-500/10 border border-emerald-400/20 px-2.5 py-1 text-[11px] font-medium text-emerald-300">⚡
+              Local RapidOCR (~0.7s)</span>
+            <span
+              class="rounded-full bg-sky-500/10 border border-sky-400/20 px-2.5 py-1 text-[11px] font-medium text-sky-300">🔒
+              100% Private (0 Cloud Calls)</span>
+            <span
+              class="rounded-full bg-amber-500/10 border border-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-300">₹0
+              Free</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading / Scanning State -->
+      <div id="scannerLoadingState" class="hidden flex-col items-center justify-center py-12 space-y-4 text-center">
+        <div
+          class="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-500/10 border border-indigo-400/30">
+          <span class="text-3xl animate-bounce">🧾</span>
+          <div
+            class="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-sky-400 to-transparent animate-pulse top-1/2">
+          </div>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold text-white">Scanning Receipt Locally...</h4>
+          <p class="text-xs text-slate-400 mt-1">Extracting line items, taxes, voluntary service charge & totals</p>
+        </div>
+        <div class="w-48 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+          <div class="h-full bg-sky-400 rounded-full animate-[pulse_1s_ease-in-out_infinite]"></div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div id="scannerErrorState"
+        class="hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-center space-y-3">
+        <span class="text-2xl block">⚠️</span>
+        <h4 class="text-sm font-semibold text-rose-200">Could not parse receipt</h4>
+        <p id="scannerErrorMessage" class="text-xs text-rose-300/80">Please ensure the photo is clear and well-lit.</p>
+        <button type="button" id="scannerRetryBtn"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/20 border border-rose-400/30 px-4 py-2 text-xs font-medium text-rose-200 hover:bg-rose-500/30">
+          Try Another Photo
+        </button>
+      </div>
+
+      <!-- Preview State -->
+      <div id="scannerPreviewState" class="hidden space-y-4">
+        <!-- Review Card -->
+        <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span id="previewCategoryBadge" class="rounded-lg px-2.5 py-1 text-xs font-semibold"></span>
+              <span id="previewTitle" class="text-sm font-semibold text-white"></span>
+            </div>
+            <span id="previewDate" class="text-xs text-slate-400"></span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5 text-xs">
+            <div class="rounded-xl bg-white/5 p-2.5">
+              <span class="text-[10px] text-slate-400 block uppercase">Total Bill</span>
+              <span id="previewTotalBill" class="text-sm font-bold text-white mt-0.5 block"></span>
+            </div>
+            <div class="rounded-xl bg-white/5 p-2.5">
+              <span class="text-[10px] text-slate-400 block uppercase">Subtotal</span>
+              <span id="previewSubtotal" class="text-sm font-semibold text-slate-200 mt-0.5 block"></span>
+            </div>
+            <div class="rounded-xl bg-white/5 p-2.5">
+              <span class="text-[10px] text-slate-400 block uppercase">Taxes & GST</span>
+              <span id="previewTaxes" class="text-sm font-semibold text-slate-200 mt-0.5 block"></span>
+            </div>
+            <div class="rounded-xl bg-white/5 p-2.5">
+              <span class="text-[10px] text-slate-400 block uppercase">Service Charge</span>
+              <span id="previewServiceCharge" class="text-sm font-semibold text-slate-200 mt-0.5 block"></span>
+            </div>
+          </div>
+
+          <div id="previewChecksumBadge"
+            class="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20 px-3 py-1.5 text-xs text-emerald-300">
+            <span>✓</span>
+            <span>Math Verified: Items, taxes and charges balance the paper bill</span>
+          </div>
+
+          <div id="previewPayerBadge"
+            class="hidden items-center gap-2 rounded-xl bg-sky-500/10 border border-sky-400/20 px-3 py-1.5 text-xs text-sky-300">
+            <span>👤</span>
+            <span>Detected Customer/Payer: <strong id="previewPayerName"></strong></span>
+          </div>
+        </div>
+
+        <!-- Line items list preview -->
+        <div id="previewItemsContainer" class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span class="font-medium uppercase tracking-wider">Detected Line Items (<span
+                id="previewItemsCount">0</span>)</span>
+            <span class="text-[11px] text-slate-500">All items remain 100% editable</span>
+          </div>
+          <div id="previewItemsList" class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+            <!-- Dynamically populated rows -->
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-white/10">
+          <button type="button" id="applyScannedBtn"
+            class="flex-1 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-lg transition hover:from-sky-400 hover:to-indigo-500 active:scale-95 flex items-center justify-center gap-1.5">
+            <span>✨ Apply to Expense</span>
+          </button>
+          <button type="button" id="switchItemizedScannedBtn"
+            class="hidden flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-lg transition hover:from-amber-400 hover:to-orange-400 active:scale-95 flex items-center justify-center gap-1.5">
+            <span>🍽️ Switch to Restaurant & Itemize</span>
+          </button>
+          <button type="button" id="cancelScannedBtn"
+            class="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs sm:text-sm font-medium text-slate-300 hover:bg-white/10 transition">
+            Scan Another
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Data Stores -->
+<script id="membersData" type="application/json">{{ members|tojson_safe }}</script>
+<script id="initialItemsData"
+  type="application/json">{{ (expense.get('items', []) if (is_edit and expense) else [])|tojson_safe }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const currentMode = "{{ mode }}";
+  const members = JSON.parse(document.getElementById('membersData')?.textContent || '[]');
+  const initialItems = JSON.parse(document.getElementById('initialItemsData')?.textContent || '[]');
+
+  function fmt(n) {
+    const val = parseFloat(n) || 0;
+    return '₹' + val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function getMemberName(id) {
+    if (!id) return 'Diner';
+    const m = members.find(m => m.id === id);
+    if (m && m.name) return m.name;
+    const opt = document.querySelector(`select[name="paid_by"] option[value="${id}"]`) ||
+      document.querySelector(`option[value="${id}"]`);
+    if (opt) {
+      if (opt.dataset && opt.dataset.name) return opt.dataset.name;
+      const clean = (opt.textContent || '').replace(/^[\p{Emoji}\s]+/u, '').trim();
+      if (clean) return clean;
+    }
+    return 'Diner';
+  }
+
+  function getMemberAvatar(id) {
+    const m = members.find(m => m.id === id);
+    return m ? m.avatar : '👤';
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Top-level declarations for cross-scope accessibility
+  let updateSummary = () => {};
+  let updateSimpleSummary = () => {};
+  let addItemWithData = () => {};
+  let generateDetailedTextBreakup = () => '';
+  let generateSimpleTextBreakdown = () => '';
+
+  // ── Traditional ASCII Receipt Layout Engine ──
+  const R_WIDTH = 42;
+  function rDiv(ch = '-') { return ch.repeat(R_WIDTH); }
+  function rPadC(str) {
+    str = String(str || '').slice(0, R_WIDTH);
+    const left = Math.max(0, Math.floor((R_WIDTH - str.length) / 2));
+    const right = Math.max(0, R_WIDTH - str.length - left);
+    return ' '.repeat(left) + str + ' '.repeat(right);
+  }
+  function rPadRow(left, right) {
+    left = String(left || '');
+    right = String(right || '');
+    const spaceNeeded = R_WIDTH - left.length - right.length;
+    if (spaceNeeded <= 0) {
+      return left.slice(0, R_WIDTH - right.length - 1) + ' ' + right;
+    }
+    return left + ' '.repeat(spaceNeeded) + right;
+  }
+
+  function copyTextToClipboard(text, cb) {
+    if (!text) return;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(() => {
+        if (cb) cb();
+      }).catch(err => {
+        console.warn('Clipboard writeText failed, trying fallback:', err);
+        fallbackCopyText(text, cb);
+      });
+      return;
+    }
+    fallbackCopyText(text, cb);
+  }
+
+  function fallbackCopyText(text, cb) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      ta.style.fontSize = '12pt';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (cb) cb();
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  }
+
+
+  // ── Toggle All Checkboxes ──
+  function setupToggleAll(btnId) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const form = btn.closest('form');
+      const boxes = form ? Array.from(form.querySelectorAll('input[name="consumers"]')) : [];
+      const shouldCheck = boxes.some(b => !b.checked);
+      boxes.forEach(b => {
+        b.checked = shouldCheck;
+        updateChipStyle(b);
+      });
+      if (currentMode === 'simple') updateSimpleSummary();
+      else updateSummary();
+    });
+  }
+
+  function updateChipStyle(box) {
+    const chip = box.closest('.consumer-chip');
+    if (!chip) return;
+    const isAmber = currentMode === 'restaurant';
+    chip.classList.toggle(isAmber ? 'border-amber-400/40' : 'border-sky-400/40', box.checked);
+    chip.classList.toggle(isAmber ? 'bg-amber-400/10' : 'bg-sky-400/10', box.checked);
+  }
+
+  document.querySelectorAll('input[name="consumers"]').forEach(box => {
+    box.addEventListener('change', () => {
+      updateChipStyle(box);
+      if (currentMode === 'simple') updateSimpleSummary();
+      else updateSummary();
+    });
+    updateChipStyle(box);
+  });
+
+  setupToggleAll('toggleAllSimple');
+  setupToggleAll('toggleAllRestaurant');
+
+  // =========================================================================
+  // SIMPLE MODE LOGIC
+  // =========================================================================
+  if (currentMode === 'simple') {
+    const amountInput = document.getElementById('s_amount');
+    const payerSelect = document.getElementById('s_paid_by');
+    const payerUpiInput = document.getElementById('s_payer_upi');
+    const viewQrBtn = document.getElementById('s_viewQrBtn');
+    const copyBtn = document.getElementById('s_copySummaryBtn');
+
+    function syncSimplePayerUpi() {
+      if (!payerSelect || !payerUpiInput) return;
+      const pid = payerSelect.value;
+      const member = members.find(m => m.id === pid);
+      const savedLocal = localStorage.getItem('tallyup_upi_' + pid);
+      if (savedLocal) {
+        payerUpiInput.value = savedLocal;
+      } else if (member && member.upi_id) {
+        payerUpiInput.value = member.upi_id;
+      }
+      updateSimpleQrBtn();
+    }
+
+    function updateSimpleQrBtn() {
+      const upi = payerUpiInput?.value.trim();
+      if (viewQrBtn) {
+        viewQrBtn.classList.toggle('hidden', !upi);
+      }
+    }
+
+    if (payerSelect) {
+      payerSelect.addEventListener('change', () => {
+        syncSimplePayerUpi();
+        updateSimpleSummary();
+      });
+    }
+
+    if (payerUpiInput) {
+      payerUpiInput.addEventListener('input', () => {
+        const pid = payerSelect?.value;
+        const upi = payerUpiInput.value.trim();
+        if (pid && upi) {
+          localStorage.setItem('tallyup_upi_' + pid, upi);
+        }
+        updateSimpleQrBtn();
+      });
+      syncSimplePayerUpi();
+    }
+
+    if (amountInput) amountInput.addEventListener('input', updateSimpleSummary);
+    const sIsTreatBox = document.getElementById('s_is_treat');
+    if (sIsTreatBox) sIsTreatBox.addEventListener('change', updateSimpleSummary);
+
+    updateSimpleSummary = function() {
+      const amt = parseFloat(amountInput?.value) || 0;
+      const payerId = payerSelect?.value;
+      const payerName = getMemberName(payerId);
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="consumers"]:checked'));
+      const numConsumers = checkedBoxes.length || 1;
+      const isTreat = document.getElementById('s_is_treat')?.checked || false;
+      const perPerson = isTreat ? 0 : (amt / numConsumers);
+
+      const sumAmtEl = document.getElementById('s_sumAmount');
+      const sumPayerEl = document.getElementById('s_sumPayer');
+      const sumPPEl = document.getElementById('s_sumPerPerson');
+      const splitBreakdownEl = document.getElementById('s_splitBreakdown');
+      const owedListEl = document.getElementById('s_owedList');
+      const owedBadgeEl = document.getElementById('s_owedBadge');
+
+      if (sumAmtEl) sumAmtEl.textContent = fmt(amt);
+      if (sumPayerEl) sumPayerEl.textContent = payerName;
+      if (sumPPEl) sumPPEl.textContent = isTreat ? '₹0.00 (🎁 Treat)' : fmt(perPerson);
+      if (splitBreakdownEl) {
+        splitBreakdownEl.textContent = isTreat
+          ? `🎁 Hosted as a Treat by ${payerName} (Friends owe ₹0.00)`
+          : `${fmt(amt)} ÷ ${numConsumers} ${numConsumers === 1 ? 'person' : 'people'}`;
+      }
+
+      const debtorBoxes = isTreat ? [] : checkedBoxes.filter(cb => cb.value !== payerId);
+      if (owedBadgeEl) {
+        owedBadgeEl.textContent = isTreat ? '🎁 Treat' : `${debtorBoxes.length} debt${debtorBoxes.length === 1 ? '' : 's'}`;
+      }
+
+      if (owedListEl) {
+        if (isTreat) {
+          owedListEl.innerHTML = `
+            <div class="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center">
+              <p class="text-xs font-semibold text-amber-200">🎁 Hosted as a Treat by ${escapeHtml(payerName)}</p>
+              <p class="text-[11px] text-slate-300 mt-0.5">Friends attend for free! Trip records this expense, but friends owe ₹0.00.</p>
+            </div>
+          `;
+        } else if (debtorBoxes.length === 0) {
+          owedListEl.innerHTML = `<p class="text-[11px] text-slate-400">No pending debts for this split.</p>`;
+        } else {
+          owedListEl.innerHTML = debtorBoxes.map(cb => {
+            const name = getMemberName(cb.value);
+            return `
+              <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
+                <span class="text-xs text-white font-medium">${name} owes ${payerName}</span>
+                <span class="text-xs font-bold text-emerald-300">${fmt(perPerson)}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      const sAscii = document.getElementById('s_asciiReceiptBox');
+      if (sAscii) sAscii.textContent = generateSimpleTextBreakdown();
+    };
+
+    generateSimpleTextBreakdown = function() {
+      const amt = parseFloat(amountInput?.value) || 0;
+      const desc = document.getElementById('s_description')?.value.trim() || 'Expense';
+      const payerId = payerSelect?.value;
+      const payerName = getMemberName(payerId);
+      const payerUpi = payerUpiInput?.value.trim() || '';
+      const checkedBoxes = Array.from(document.querySelectorAll('input[name="consumers"]:checked'));
+      const consumers = checkedBoxes.map(cb => getMemberName(cb.value));
+      const numConsumers = consumers.length || 1;
+      const isTreat = document.getElementById('s_is_treat')?.checked || false;
+      const perPerson = isTreat ? 0 : (amt / numConsumers);
+
+      const lines = [];
+      lines.push(rDiv('='));
+      lines.push(rPadC('TALLYUP'));
+      lines.push(rPadC('EXPENSE RECEIPT'));
+      lines.push(rPadC(desc.toUpperCase()));
+      lines.push(rDiv('='));
+
+      lines.push(rPadRow('PAID BY:', payerName));
+      lines.push(rPadRow('TOTAL AMOUNT:', fmt(amt)));
+      lines.push(rPadRow('SPLIT AMONG:', `${consumers.length} people`));
+      lines.push(`Attendees: ${consumers.join(', ')}`);
+      lines.push(rDiv('-'));
+
+      if (isTreat) {
+        lines.push(rPadC('🎁 HOSTED AS A TREAT'));
+        lines.push(rPadC(`Paid 100% by ${payerName}`));
+        lines.push(rPadC('Friends & Guests owe: ₹0.00'));
+      } else {
+        lines.push(rPadRow('EQUAL SPLIT:', `${fmt(perPerson)} each`));
+        lines.push(rDiv('-'));
+        lines.push('PAYMENT DUES:');
+        checkedBoxes.forEach(cb => {
+          if (cb.value !== payerId) {
+            const debtorName = getMemberName(cb.value);
+            lines.push(rPadRow('- ' + debtorName + ' owes ' + payerName + ':', fmt(perPerson)));
+            if (payerUpi) {
+              const amtStr = perPerson.toFixed(2);
+              const payLink = `upi://pay?pa=${encodeURIComponent(payerUpi)}&pn=${encodeURIComponent(payerName)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(desc)}`;
+              lines.push(`  Pay Link: [Pay via UPI](${payLink})`);
+            }
+          }
+        });
+        if (payerUpi) {
+          lines.push(rPadRow('PAYER UPI:', payerUpi));
+        }
+      }
+
+      lines.push(rDiv('='));
+      lines.push(rPadC('*Auto-generated*'));
+      return lines.join('\n');
+    };
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const text = generateSimpleTextBreakdown();
+        const copyTextEl = document.getElementById('s_copyText');
+        const showCopied = () => {
+          if (copyTextEl) copyTextEl.textContent = 'Copied!';
+          copyBtn.classList.add('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+          setTimeout(() => {
+            if (copyTextEl) copyTextEl.textContent = 'Copy Breakdown';
+            copyBtn.classList.remove('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+          }, 2200);
+        };
+        copyTextToClipboard(text, showCopied);
+      });
+    }
+
+    if (viewQrBtn) {
+      viewQrBtn.addEventListener('click', () => {
+        const upi = payerUpiInput?.value.trim();
+        if (!upi) return;
+        const payerName = getMemberName(payerSelect?.value);
+        const desc = document.getElementById('s_description')?.value.trim() || 'Expense';
+        const amt = parseFloat(amountInput?.value) || 0;
+        const numConsumers = document.querySelectorAll('input[name="consumers"]:checked').length || 1;
+        const pp = (amt / numConsumers).toFixed(2);
+
+        const upiUri = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${encodeURIComponent(payerName)}&am=${pp}&cu=INR&tn=${encodeURIComponent(desc)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiUri)}&margin=1`;
+
+        document.getElementById('qrModalImg').src = qrUrl;
+        document.getElementById('qrModalName').textContent = `Pay ${payerName}`;
+        document.getElementById('qrModalAmount').textContent = `Share: ₹${pp}`;
+        document.getElementById('qrModalUpi').textContent = upi;
+        document.getElementById('qrModalDeepLink').href = upiUri;
+
+        const qrModal = document.getElementById('qrModal');
+        qrModal?.classList.remove('hidden');
+        qrModal?.classList.add('flex');
+      });
+    }
+
+    updateSimpleSummary();
+  }
+
+  // =========================================================================
+  // RESTAURANT MODE LOGIC
+  // =========================================================================
+  if (currentMode === 'restaurant') {
+    function getVal(id) { const el = document.getElementById(id); return el ? parseFloat(el.value) || 0 : 0; }
+
+    function getItemsData() {
+      const raw = document.getElementById('itemsData')?.value;
+      try { return JSON.parse(raw || '[]'); } catch { return []; }
+    }
+
+    updateSummary = function() {
+      const bill = getVal('r_total_bill');
+      const serviceCharge = getVal('r_service_charge');
+      const taxAmtInput = getVal('r_tax_amt');
+      const taxPct = getVal('r_tax_pct');
+      const discountPct = getVal('r_discount');
+      const fee = getVal('r_convenience_fee');
+      const coverTotal = getVal('r_cover_total');
+      const coverPP = getVal('r_cover_pp');
+      const coins = getVal('r_coins');
+      const includeCoins = document.getElementById('r_include_coins')?.checked;
+      const numConsumers = document.querySelectorAll('input[name="consumers"]:checked').length || 1;
+      const taxSplitMethod = document.querySelector('input[name="tax_split_method"]:checked')?.value || 'equal';
+
+      // Step 1: Taxes & Service Charge
+      let tax = 0;
+      let foodSubtotal = Math.max(0, bill - serviceCharge);
+
+      if (taxAmtInput > 0) {
+        tax = taxAmtInput;
+        foodSubtotal = Math.max(0, bill - serviceCharge - tax);
+      } else if (taxPct > 0) {
+        const taxableBase = Math.max(0, bill - serviceCharge);
+        foodSubtotal = taxableBase / (1 + taxPct / 100);
+        tax = Math.max(0, taxableBase - foodSubtotal);
+      }
+
+      // Step 2: Apply discount and add convenience fee
+      const discount = bill * discountPct / 100;
+      const netBill = Math.max(0, bill - discount + fee);
+
+      const discountFactor = discountPct < 100 ? (1 - discountPct / 100) : 0;
+      const netFood = foodSubtotal * discountFactor;
+      const netService = serviceCharge * discountFactor;
+      const netTax = Math.max(0, netBill - netFood - netService);
+
+      // Step 3: Cover and coins
+      const cover = coverTotal > 0 ? coverTotal : coverPP * numConsumers;
+      const final_ = Math.max(0, netBill - cover - coins);
+
+      const targetBill = includeCoins ? Math.max(0, netBill - coins) : netBill;
+      const targetFood = netBill > 0 ? (netFood * (targetBill / netBill)) : 0;
+      const targetTax = Math.max(0, targetBill - targetFood);
+      const perPerson = targetBill / numConsumers;
+
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      set('sumBill', fmt(bill));
+      set('sumFoodSubtotal', fmt(foodSubtotal));
+
+      const scRow = document.getElementById('sumServiceChargeRow');
+      if (scRow) {
+        scRow.classList.toggle('hidden', serviceCharge <= 0);
+        set('sumServiceCharge', fmt(serviceCharge));
+      }
+
+      const effTaxPct = foodSubtotal > 0 ? ((tax / foodSubtotal) * 100).toFixed(1) : taxPct.toFixed(1);
+      set('sumTaxIncluded', fmt(tax) + (effTaxPct > 0 ? ` (${effTaxPct}%)` : ''));
+
+      const discRow = document.getElementById('sumDiscountRow');
+      if (discRow) {
+        discRow.classList.toggle('hidden', discountPct <= 0);
+        set('sumDiscount', '-' + fmt(discount));
+      }
+
+      const sumFeeRow = document.getElementById('sumFeeRow');
+      if (sumFeeRow) {
+        sumFeeRow.classList.toggle('hidden', fee <= 0);
+        set('sumFee', '+' + fmt(fee));
+      }
+
+      set('sumNetBill', fmt(netBill));
+
+      const coverRow = document.getElementById('sumCoverRow');
+      if (coverRow) {
+        coverRow.classList.toggle('hidden', cover <= 0);
+        set('sumCover', '-' + fmt(cover));
+      }
+
+      const coinsRow = document.getElementById('sumCoinsRow');
+      if (coinsRow) {
+        coinsRow.classList.toggle('hidden', coins <= 0);
+        set('sumCoins', '-' + fmt(coins));
+      }
+
+      set('sumFinal', fmt(final_));
+
+      if (discountPct > 0 && bill > 0) {
+        set('discountPreview', `Saves ${fmt(discount)} (${discountPct}%)`);
+      } else {
+        set('discountPreview', '');
+      }
+
+      if (tax > 0) {
+        set('taxPreview', `Taxes: ${fmt(tax)} · Food: ${fmt(foodSubtotal)}`);
+      } else {
+        set('taxPreview', '');
+      }
+
+      // Check diners and items
+      const checkedConsumers = Array.from(document.querySelectorAll('input[name="consumers"]:checked')).map(cb => cb.value);
+      const items = getItemsData();
+      const allDiners = new Set(checkedConsumers);
+      items.forEach(it => { (it.consumed_by || []).forEach(cid => allDiners.add(cid)); });
+      const dinerList = Array.from(allDiners);
+      const nDiners = dinerList.length || 1;
+
+      const hasItems = items.length > 0 && items.some(it => parseFloat(it.price) > 0);
+      const equalContainer = document.getElementById('equalSplitContainer');
+      const itemizedContainer = document.getElementById('itemizedSplitContainer');
+      const itemizedList = document.getElementById('itemizedSharesList');
+      const itemizedRatioNote = document.getElementById('itemizedRatioNote');
+      const dinerMealShares = {};
+      const isTreat = document.getElementById('r_is_treat')?.checked || false;
+
+      const payerId = document.getElementById('r_paid_by')?.value;
+      const payerName = getMemberName(payerId);
+      const coverPayerId = document.getElementById('r_cover_paid_by')?.value || payerId;
+      const coinsOwnerId = document.getElementById('r_coins_by')?.value || payerId;
+
+      if (hasItems && itemizedContainer && itemizedList) {
+        if (equalContainer) equalContainer.classList.add('hidden');
+        itemizedContainer.classList.remove('hidden');
+
+        const outsideItems = items.filter(it => it.paid_by && it.paid_by !== payerId && it.is_outside);
+        const billItems = items.filter(it => !outsideItems.includes(it));
+
+        const personBillTotals = {};
+        const personOutsideTotals = {};
+        dinerList.forEach(cid => {
+          personBillTotals[cid] = 0;
+          personOutsideTotals[cid] = 0;
+        });
+
+        let billItemsSum = 0;
+        billItems.forEach(it => {
+          const p = parseFloat(it.price) || 0;
+          const cids = (it.consumed_by && it.consumed_by.length > 0) ? it.consumed_by : dinerList;
+          if (cids.length > 0 && p > 0) {
+            const share = p / cids.length;
+            cids.forEach(cid => {
+              personBillTotals[cid] = (personBillTotals[cid] || 0) + share;
+            });
+            billItemsSum += p;
+          }
+        });
+
+        outsideItems.forEach(it => {
+          const p = parseFloat(it.price) || 0;
+          const cids = (it.consumed_by && it.consumed_by.length > 0) ? it.consumed_by : dinerList;
+          if (cids.length > 0 && p > 0) {
+            const share = p / cids.length;
+            cids.forEach(cid => {
+              personOutsideTotals[cid] = (personOutsideTotals[cid] || 0) + share;
+            });
+          }
+        });
+
+        if (itemizedRatioNote) {
+          itemizedRatioNote.textContent = isTreat
+            ? '🎁 Hosted as a Treat (Friends owe ₹0.00)'
+            : ((taxSplitMethod === 'proportional') ? 'Proportional items & tax' : 'Items proportional · Taxes split equally');
+        }
+
+        itemizedList.innerHTML = dinerList.map(cid => {
+          const consumedBill = personBillTotals[cid] || 0;
+          const consumedOutside = personOutsideTotals[cid] || 0;
+          let billShare = 0;
+
+          if (billItemsSum > 0) {
+            if (taxSplitMethod === 'proportional') {
+              billShare = consumedBill * (targetBill / billItemsSum);
+            } else {
+              const taxShare = targetBill > targetFood ? ((targetBill - targetFood) / nDiners) : 0;
+              const foodShare = targetFood > 0 ? (consumedBill * (targetFood / billItemsSum)) : (consumedBill * (targetBill / billItemsSum));
+              billShare = foodShare + taxShare;
+            }
+          } else {
+            billShare = targetBill / nDiners;
+          }
+
+          const rawFinalShare = billShare + consumedOutside;
+          const finalShare = isTreat ? (cid === payerId ? targetBill : 0) : rawFinalShare;
+          dinerMealShares[cid] = finalShare;
+
+          const consumedTotal = consumedBill + consumedOutside;
+          return `
+            <div class="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-2.5">
+              <div class="flex items-center gap-2">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                <div>
+                  <p class="text-xs font-semibold text-white">${getMemberName(cid)}</p>
+                  <p class="text-[10px] text-slate-400">Items: ${fmt(consumedTotal)}${consumedOutside > 0 ? ` (incl. ${fmt(consumedOutside)} extra)` : ''}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-xs font-bold ${isTreat && cid !== payerId ? 'text-emerald-300' : 'text-amber-300'}">${isTreat && cid !== payerId ? '₹0.00 <span class="text-[9px] text-amber-300 font-normal">(Treat)</span>' : fmt(finalShare)}</p>
+                <p class="text-[10px] text-slate-400">Net share</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        if (equalContainer) equalContainer.classList.remove('hidden');
+        if (itemizedContainer) itemizedContainer.classList.add('hidden');
+        if (isTreat) {
+          set('sumPerPerson', '₹0.00 (🎁 Treat)');
+          dinerList.forEach(cid => { dinerMealShares[cid] = (cid === payerId ? targetBill : 0); });
+          const equalBreakdownEl = document.getElementById('equalSplitBreakdown');
+          if (equalBreakdownEl) {
+            equalBreakdownEl.textContent = `🎁 Hosted as a Treat by ${payerName} (Friends owe ₹0.00)`;
+          }
+        } else {
+          set('sumPerPerson', fmt(perPerson));
+          dinerList.forEach(cid => { dinerMealShares[cid] = perPerson; });
+          const equalBreakdownEl = document.getElementById('equalSplitBreakdown');
+          if (equalBreakdownEl) {
+            equalBreakdownEl.textContent = `${fmt(targetBill)} net bill ÷ ${numConsumers} ${numConsumers === 1 ? 'person' : 'people'}`;
+          }
+        }
+      }
+
+      // ── Table Cash Settlement ──
+      const settlementBox = document.getElementById('tableSettlementBox');
+      const settlementList = document.getElementById('tableSettlementList');
+      const settlementBadge = document.getElementById('tableSettlementBadge');
+      const settlementNote = document.getElementById('tableSettlementNote');
+
+      if (settlementBox && settlementList) {
+        if (bill > 0 && dinerList.length > 0) {
+          settlementBox.classList.remove('hidden');
+          if (settlementBadge) settlementBadge.textContent = isTreat ? '🎁 Treat' : `Table bill: ${fmt(final_)}`;
+
+          const rowsHtml = dinerList.map(cid => {
+            const isPayer = cid === payerId;
+            const payerBadge = isPayer ? `<span class="text-[9px] rounded bg-amber-400/20 text-amber-300 px-1 py-0.5 ml-1 font-semibold">Table Payer</span>` : '';
+
+            if (isTreat) {
+              if (isPayer) {
+                return `
+                  <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                      <div class="min-w-0">
+                        <p class="text-xs font-medium text-white truncate flex items-center">${getMemberName(cid)} ${payerBadge}</p>
+                        <p class="text-[10px] leading-tight text-amber-300">Host (Pays entire table bill as treat)</p>
+                      </div>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-2">
+                      <span class="text-xs font-bold text-amber-300">${fmt(final_)}</span>
+                      <p class="text-[9px] text-slate-500">at table</p>
+                    </div>
+                  </div>
+                `;
+              } else {
+                return `
+                  <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                      <div class="min-w-0">
+                        <p class="text-xs font-medium text-white truncate flex items-center">${getMemberName(cid)}</p>
+                        <p class="text-[10px] leading-tight text-emerald-400">🎁 Treat from ${escapeHtml(payerName)}</p>
+                      </div>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-2">
+                      <span class="text-xs font-bold text-emerald-300">₹0.00</span>
+                      <p class="text-[9px] text-slate-500">at table</p>
+                    </div>
+                  </div>
+                `;
+              }
+            }
+
+            const mealShare = dinerMealShares[cid] || 0;
+            let advanceCredit = 0;
+            const parts = [];
+
+            if (cover > 0 && cid === coverPayerId) {
+              advanceCredit += cover;
+              parts.push(`${fmt(cover)} (Table Booking Charge)`);
+            }
+            if (coins > 0 && !includeCoins && cid === coinsOwnerId) {
+              advanceCredit += coins;
+              parts.push(`${fmt(coins)} (Personal Coins)`);
+            }
+
+            // Items paid by this diner (e.g. water bottle paid by Bar)
+            let itemsPaidByCid = 0;
+            items.forEach(it => {
+              if (it.paid_by === cid && cid !== payerId) {
+                const ip = parseFloat(it.price) || 0;
+                if (ip > 0) {
+                  itemsPaidByCid += ip;
+                  parts.push(`${fmt(ip)} (Paid for ${it.name || 'item'})`);
+                }
+              }
+            });
+            advanceCredit += itemsPaidByCid;
+
+            const tableShare = mealShare - advanceCredit;
+            let amountDisplay = '';
+            let subtext = '';
+
+            if (advanceCredit > 0) {
+              const deductionText = parts.join(' − ');
+              if (tableShare > 0) {
+                amountDisplay = `<span class="text-xs font-bold text-emerald-300">${fmt(tableShare)}</span>`;
+                subtext = `<span class="text-slate-400">Share ${fmt(mealShare)} − <span class="text-teal-300 font-medium">${deductionText}</span></span>`;
+              } else if (tableShare === 0) {
+                amountDisplay = `<span class="text-xs font-bold text-teal-300">₹0.00</span>`;
+                subtext = `<span class="text-teal-300 font-medium">Fully covered by ${deductionText}</span>`;
+              } else {
+                amountDisplay = `<span class="text-xs font-bold text-sky-300">+${fmt(Math.abs(tableShare))}</span>`;
+                subtext = `<span class="text-sky-300 font-medium">Gets back ${fmt(Math.abs(tableShare))} (${deductionText} − ${fmt(mealShare)} share)</span>`;
+              }
+            } else {
+              amountDisplay = `<span class="text-xs font-bold text-white">${fmt(mealShare)}</span>`;
+              subtext = `<span class="text-slate-400">Full meal share</span>`;
+            }
+
+            return `
+              <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-white truncate flex items-center">${getMemberName(cid)} ${payerBadge}</p>
+                    <p class="text-[10px] leading-tight">${subtext}</p>
+                  </div>
+                </div>
+                <div class="text-right flex-shrink-0 ml-2">
+                  ${amountDisplay}
+                  <p class="text-[9px] text-slate-500">at table</p>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          settlementList.innerHTML = rowsHtml;
+
+          if (settlementNote) {
+            if (isTreat) {
+              settlementNote.innerHTML = `🎁 <strong>Hosted as a Treat by ${escapeHtml(payerName)}</strong>. Friends pay ₹0.00 at the table.`;
+            } else {
+              const hasOtherItemPayer = items.some(it => it.paid_by && it.paid_by !== payerId);
+              if (hasOtherItemPayer) {
+                settlementNote.innerHTML = `Note: Member item payments (e.g. water/drinks) are credited directly to reduce their table cash or reimbursed.`;
+              } else if (cover > 0 || coins > 0) {
+                const coverName = getMemberName(coverPayerId);
+                settlementNote.innerHTML = `Note: <strong>${coverName}</strong> paid ${fmt(cover)} for the Table Booking to avail the offer, so their table cash contribution is reduced to balance the split.`;
+              } else {
+                settlementNote.innerHTML = `Note: Each diner puts in their fair share to clear the table bill.`;
+              }
+            }
+          }
+        } else {
+          settlementBox.classList.add('hidden');
+        }
+      }
+
+      const rAscii = document.getElementById('r_asciiReceiptBox');
+      if (rAscii) rAscii.textContent = generateDetailedTextBreakup();
+    };
+
+    ['r_total_bill', 'r_service_charge', 'r_discount', 'r_convenience_fee', 'r_tax_pct', 'r_tax_amt', 'r_cover_total', 'r_cover_pp', 'r_coins'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateSummary);
+    });
+
+    ['r_paid_by', 'r_cover_paid_by', 'r_coins_by'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', updateSummary);
+    });
+
+    const includeCoinsBox = document.getElementById('r_include_coins');
+    if (includeCoinsBox) includeCoinsBox.addEventListener('change', updateSummary);
+
+    const rIsTreatBox = document.getElementById('r_is_treat');
+    if (rIsTreatBox) rIsTreatBox.addEventListener('change', updateSummary);
+
+    // Tax split method radio listeners
+    document.querySelectorAll('input[name="tax_split_method"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.tax-split-chip').forEach(chip => {
+          const r = chip.querySelector('input[name="tax_split_method"]');
+          if (r && r.checked) {
+            chip.classList.add('border-teal-400/40', 'bg-teal-400/10');
+            chip.classList.remove('border-transparent', 'text-slate-400');
+          } else {
+            chip.classList.remove('border-teal-400/40', 'bg-teal-400/10');
+            chip.classList.add('border-transparent', 'text-slate-400');
+          }
+        });
+        updateSummary();
+      });
+    });
+
+    // Tax percentage / amount mutual sync
+    const taxPctEl = document.getElementById('r_tax_pct');
+    const taxAmtEl = document.getElementById('r_tax_amt');
+    let isSyncingTax = false;
+
+    function recalculateTaxFromPct() {
+      if (isSyncingTax || !taxPctEl || !taxAmtEl) return;
+      isSyncingTax = true;
+      const bill = getVal('r_total_bill');
+      const serviceCharge = getVal('r_service_charge');
+      const taxableBase = Math.max(0, bill - serviceCharge);
+      const p = parseFloat(taxPctEl.value) || 0;
+      if (p > 0 && taxableBase > 0) {
+        const foodSub = taxableBase / (1 + p / 100);
+        const taxAmt = taxableBase - foodSub;
+        taxAmtEl.value = taxAmt.toFixed(2);
+      } else if (taxPctEl.value === '') {
+        taxAmtEl.value = '';
+      }
+      isSyncingTax = false;
+      updateSummary();
+    }
+
+    if (taxPctEl && taxAmtEl) {
+      taxPctEl.addEventListener('input', recalculateTaxFromPct);
+      taxAmtEl.addEventListener('input', () => {
+        if (isSyncingTax) return;
+        isSyncingTax = true;
+        const bill = getVal('r_total_bill');
+        const serviceCharge = getVal('r_service_charge');
+        const a = parseFloat(taxAmtEl.value) || 0;
+        const taxableBase = Math.max(0, bill - serviceCharge);
+        if (a > 0 && taxableBase > a) {
+          const foodSub = taxableBase - a;
+          taxPctEl.value = ((a / foodSub) * 100).toFixed(2);
+        } else if (taxAmtEl.value === '') {
+          taxPctEl.value = '';
+        }
+        isSyncingTax = false;
+        updateSummary();
+      });
+
+      const scEl = document.getElementById('r_service_charge');
+      if (scEl) {
+        scEl.addEventListener('input', () => {
+          if (taxPctEl && taxPctEl.value !== '') recalculateTaxFromPct();
+          else updateSummary();
+        });
+      }
+
+      const billEl = document.getElementById('r_total_bill');
+      if (billEl) {
+        billEl.addEventListener('input', () => {
+          if (taxPctEl && taxPctEl.value !== '') recalculateTaxFromPct();
+          else updateSummary();
+        });
+      }
+    }
+
+    // Cover charge mutual exclusion
+    const coverTotal = document.getElementById('r_cover_total');
+    const coverPP = document.getElementById('r_cover_pp');
+    if (coverTotal && coverPP) {
+      coverTotal.addEventListener('input', () => { if (coverTotal.value > 0) coverPP.value = 0; updateSummary(); });
+      coverPP.addEventListener('input', () => { if (coverPP.value > 0) coverTotal.value = 0; updateSummary(); });
+    }
+
+    // Dynamic Items Management
+    let itemCounter = 0;
+    function getCheckedConsumers() {
+      return Array.from(document.querySelectorAll('input[name="consumers"]:checked')).map(cb => cb.value);
+    }
+
+    function updateItemChipStyle(box) {
+      const label = box.closest('.item-consumer-chip');
+      if (!label) return;
+      if (box.checked) {
+        label.classList.add('border-sky-400', 'bg-sky-400/20', 'text-white', 'font-medium');
+        label.classList.remove('border-white/10', 'bg-white/5', 'text-slate-400', 'opacity-50');
+      } else {
+        label.classList.remove('border-sky-400', 'bg-sky-400/20', 'text-white', 'font-medium');
+        label.classList.add('border-white/10', 'bg-white/5', 'text-slate-400', 'opacity-50');
+      }
+    }
+
+    function updateItemDefaultPayerLabels() {
+      const mainPayerId = document.getElementById('r_paid_by')?.value || '';
+      const mainPayerName = getMemberName(mainPayerId);
+      document.querySelectorAll('.item-paid-by').forEach(select => {
+        const firstOpt = select.options[0];
+        if (firstOpt) firstOpt.textContent = `Table Payer(${ mainPayerName })`;
+        const outsideWrapper = select.closest('.item-row')?.querySelector('.item-outside-wrapper');
+        const isOther = select.value && select.value !== mainPayerId;
+        if (outsideWrapper) outsideWrapper.classList.toggle('hidden', !isOther);
+      });
+    }
+
+    addItemWithData = function(name = '', price = '', consumedBy = null, paidBy = '', isOutside = true) {
+      const consumers = getCheckedConsumers();
+      const targetConsumers = (consumedBy && consumedBy.length > 0) ? consumedBy : consumers;
+      const idx = itemCounter++;
+      const div = document.createElement('div');
+      div.className = 'item-row rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 transition hover:border-white/20';
+      div.dataset.idx = idx;
+
+      const mainPayerId = document.getElementById('r_paid_by')?.value || '';
+      const mainPayerName = getMemberName(mainPayerId);
+      const isCustomPayer = paidBy && paidBy !== mainPayerId;
+
+      div.innerHTML = `
+        <div class="flex gap-3 items-start">
+          <div class="flex-1">
+            <input type="text" placeholder="Item name (e.g. Biryani, Pizza, Drink, Water)" value="${escapeHtml(name)}" class="item-name h-10 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+          </div>
+          <div class="w-32">
+            <div class="relative">
+              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400 text-xs">₹</span>
+              <input type="number" min="0" step="0.01" placeholder="0.00" value="${price || ''}" class="item-price h-10 w-full rounded-xl border border-white/10 bg-slate-950/60 pl-7 pr-2 text-sm text-white font-medium outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+            </div>
+          </div>
+          <button type="button" class="remove-item flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100" title="Remove item">✕</button>
+        </div>
+
+        <!-- Paid By Selector & Outside Bill Toggle -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-400 font-medium">💳 Paid by:</span>
+            <select class="item-paid-by h-8 rounded-lg border border-white/10 bg-slate-900 px-2 text-xs text-white outline-none focus:border-amber-400/60">
+              <option value="">Table Payer (${escapeHtml(mainPayerName)})</option>
+              ${members.map(m => `
+                <option value="${m.id}" ${paidBy === m.id ? 'selected' : ''}>${m.avatar} ${escapeHtml(m.name)}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="item-outside-wrapper flex items-center gap-1.5 ${isCustomPayer ? '' : 'hidden'}">
+            <label class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-200">
+              <input type="checkbox" class="item-is-outside h-3.5 w-3.5 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-400" ${isOutside ? 'checked' : ''}>
+              <span>Paid separately outside bill (e.g. bought at counter)</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-2 flex items-center justify-between">
+            <p class="text-xs text-slate-400">Who consumed this item?</p>
+            <div class="flex gap-2">
+              <button type="button" class="select-all-item text-[11px] text-sky-400 hover:underline">All</button>
+              <span class="text-slate-600 text-xs">·</span>
+              <button type="button" class="clear-all-item text-[11px] text-slate-400 hover:underline">Clear</button>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            ${(consumers.length > 0 ? consumers : members.map(m => m.id)).map(cid => {
+              const checked = targetConsumers.includes(cid);
+              return `
+                <label class="item-consumer-chip flex cursor-pointer items-center gap-1.5 rounded-xl border ${checked ? 'border-sky-400 bg-sky-400/20 text-white font-medium' : 'border-white/10 bg-white/5 text-slate-400 opacity-50'} px-3 py-1.5 text-xs transition hover:border-sky-400/60">
+                  <input type="checkbox" value="${cid}" class="item-consumer h-3.5 w-3.5 rounded border-white/20 bg-slate-900 text-sky-500" ${checked ? 'checked' : ''}>
+                  <span>${getMemberAvatar(cid)}</span>
+                  <span>${getMemberName(cid)}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+    `;
+
+      document.getElementById('itemsList').appendChild(div);
+
+      const paidBySelect = div.querySelector('.item-paid-by');
+      const outsideWrapper = div.querySelector('.item-outside-wrapper');
+      const outsideBox = div.querySelector('.item-is-outside');
+
+      if (paidBySelect) {
+        paidBySelect.addEventListener('change', () => {
+          const curMainPayer = document.getElementById('r_paid_by')?.value;
+          const chosen = paidBySelect.value;
+          const isOther = chosen && chosen !== curMainPayer;
+          if (outsideWrapper) outsideWrapper.classList.toggle('hidden', !isOther);
+          if (outsideBox && isOther && !outsideBox.checked) outsideBox.checked = true;
+          updateItemsData();
+        });
+      }
+
+      if (outsideBox) {
+        outsideBox.addEventListener('change', updateItemsData);
+      }
+
+      div.querySelector('.remove-item').addEventListener('click', () => {
+        div.remove();
+        updateItemsData();
+      });
+
+      const checkboxes = div.querySelectorAll('.item-consumer');
+      div.querySelector('.select-all-item')?.addEventListener('click', () => {
+        checkboxes.forEach(cb => { cb.checked = true; updateItemChipStyle(cb); });
+        updateItemsData();
+      });
+      div.querySelector('.clear-all-item')?.addEventListener('click', () => {
+        checkboxes.forEach(cb => { cb.checked = false; updateItemChipStyle(cb); });
+        updateItemsData();
+      });
+
+      checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+          updateItemChipStyle(cb);
+          updateItemsData();
+        });
+        updateItemChipStyle(cb);
+      });
+
+      div.querySelectorAll('.item-price, .item-name').forEach(el => {
+        el.addEventListener('input', updateItemsData);
+        el.addEventListener('change', updateItemsData);
+      });
+
+      updateItemsData();
+    }
+
+    function updateItemsData() {
+      const items = [];
+      let total = 0;
+      const mainPayerId = document.getElementById('r_paid_by')?.value || '';
+
+      document.querySelectorAll('.item-row').forEach(row => {
+        const name = row.querySelector('.item-name').value.trim();
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const consumedBy = Array.from(row.querySelectorAll('.item-consumer:checked')).map(cb => cb.value);
+        const paidBy = row.querySelector('.item-paid-by')?.value || '';
+        const isOutside = row.querySelector('.item-is-outside')?.checked || false;
+
+        if (name || price > 0) {
+          items.push({
+            name,
+            price: price.toFixed(2),
+            consumed_by: consumedBy,
+            paid_by: paidBy,
+            is_outside: (paidBy && paidBy !== mainPayerId) ? isOutside : false,
+          });
+          total += price;
+        }
+      });
+
+      const itemsDataEl = document.getElementById('itemsData');
+      if (itemsDataEl) itemsDataEl.value = JSON.stringify(items);
+
+      const display = document.getElementById('itemsTotalDisplay');
+      if (display) display.textContent = fmt(total);
+
+      updateSummary();
+    }
+
+    const addItemBtn = document.getElementById('addItemBtn');
+    if (addItemBtn) addItemBtn.addEventListener('click', () => addItemWithData());
+
+    // Initialize items from database if editing
+    if (initialItems && initialItems.length > 0) {
+      const listEl = document.getElementById('itemsList');
+      if (listEl) listEl.innerHTML = '';
+      initialItems.forEach(it => {
+        addItemWithData(it.name || '', it.price || '', it.consumed_by || [], it.paid_by || '', it.is_outside !== false);
+      });
+    } else if (document.getElementById('itemsList') && document.querySelectorAll('.item-row').length === 0) {
+      addItemWithData();
+    }
+
+    // ── Restaurant Detailed Breakdown Generation (Traditional ASCII Receipt) ──
+    generateDetailedTextBreakup = function() {
+      const bill = getVal('r_total_bill');
+      const serviceCharge = getVal('r_service_charge');
+      const taxAmtInput = getVal('r_tax_amt');
+      const taxPct = getVal('r_tax_pct');
+      const discountPct = getVal('r_discount');
+      const fee = getVal('r_convenience_fee');
+      const coverTotal = getVal('r_cover_total');
+      const coverPP = getVal('r_cover_pp');
+      const coins = getVal('r_coins');
+      const includeCoins = document.getElementById('r_include_coins')?.checked;
+      const taxSplitMethod = document.querySelector('input[name="tax_split_method"]:checked')?.value || 'equal';
+      const isTreat = document.getElementById('r_is_treat')?.checked || false;
+
+      const desc = document.getElementById('r_description')?.value.trim() || 'Restaurant Expense';
+      const payerId = document.getElementById('r_paid_by')?.value;
+      const payerName = getMemberName(payerId);
+      const payerUpi = document.getElementById('r_payer_upi')?.value.trim() || '';
+      const coverPayerId = document.getElementById('r_cover_paid_by')?.value || payerId;
+      const coverPayerName = getMemberName(coverPayerId);
+      const coinsOwnerId = document.getElementById('r_coins_by')?.value || payerId;
+      const coinsOwnerName = getMemberName(coinsOwnerId);
+
+      const checkedConsumers = Array.from(document.querySelectorAll('input[name="consumers"]:checked')).map(cb => cb.value);
+      const items = getItemsData();
+      const allDinerIds = new Set(checkedConsumers);
+      items.forEach(it => { (it.consumed_by || []).forEach(cid => allDinerIds.add(cid)); });
+      const diners = Array.from(allDinerIds);
+      const numConsumers = diners.length || 1;
+
+      let tax = 0;
+      let foodSubtotal = Math.max(0, bill - serviceCharge);
+      if (taxAmtInput > 0) {
+        tax = taxAmtInput;
+        foodSubtotal = Math.max(0, bill - serviceCharge - tax);
+      } else if (taxPct > 0) {
+        const taxableBase = Math.max(0, bill - serviceCharge);
+        foodSubtotal = taxableBase / (1 + taxPct / 100);
+        tax = Math.max(0, taxableBase - foodSubtotal);
+      }
+
+      const discount = bill * discountPct / 100;
+      const netBill = Math.max(0, bill - discount + fee);
+      const discountFactor = discountPct < 100 ? (1 - discountPct / 100) : 0;
+      const netFood = foodSubtotal * discountFactor;
+      const netService = serviceCharge * discountFactor;
+      const netTax = Math.max(0, netBill - netFood - netService);
+
+      const cover = coverTotal > 0 ? coverTotal : coverPP * numConsumers;
+      const finalPaidAtTable = Math.max(0, netBill - cover - coins);
+
+      const targetBill = includeCoins ? Math.max(0, netBill - coins) : netBill;
+      const targetFood = netBill > 0 ? (netFood * (targetBill / netBill)) : 0;
+      const targetTax = Math.max(0, targetBill - targetFood);
+
+      const lines = [];
+      lines.push(rDiv('='));
+      lines.push(rPadC('TALLYUP'));
+      lines.push(rPadC('RESTAURANT RECEIPT'));
+      lines.push(rPadC(desc.toUpperCase()));
+      lines.push(rDiv('='));
+
+      lines.push(rPadRow('PAID AT TABLE BY:', payerName));
+      lines.push(rPadRow('DINERS:', diners.length + ' people'));
+      lines.push('Table: ' + diners.map(cid => getMemberName(cid)).join(', '));
+      lines.push(rDiv('-'));
+
+      lines.push(rPadRow('FOOD SUBTOTAL:', fmt(foodSubtotal)));
+      if (serviceCharge > 0) {
+        lines.push(rPadRow('SERVICE CHARGE:', fmt(serviceCharge)));
+      }
+      if (tax > 0) {
+        const effPct = foodSubtotal > 0 ? ((tax / foodSubtotal) * 100).toFixed(1) : taxPct.toFixed(1);
+        lines.push(rPadRow('TAXES & GST (' + effPct + '%):', fmt(tax)));
+      }
+      lines.push(rPadRow('TOTAL BILL (PAPER):', fmt(bill)));
+
+      if (discountPct > 0 || fee > 0 || cover > 0 || coins > 0) {
+        lines.push(rDiv('-'));
+        if (discountPct > 0) {
+          lines.push(rPadRow('OFFER DISCOUNT (' + discountPct + '%):', '-' + fmt(discount)));
+        }
+        if (fee > 0) {
+          lines.push(rPadRow('CONVENIENCE FEE:', '+' + fmt(fee)));
+        }
+        lines.push(rPadRow('NET BILL TO SPLIT:', fmt(netBill)));
+        if (cover > 0) {
+          lines.push(rPadRow('TABLE BOOKING (' + coverPayerName + '):', '-' + fmt(cover)));
+        }
+        if (coins > 0) {
+          lines.push(rPadRow('DINECOINS (' + coinsOwnerName + '):', '-' + fmt(coins)));
+        }
+        lines.push(rPadRow('PAID AT TABLE:', fmt(finalPaidAtTable)));
+      }
+      lines.push(rDiv('-'));
+
+      const outsideItems = items.filter(it => it.paid_by && it.paid_by !== payerId && it.is_outside);
+      const billItems = items.filter(it => !outsideItems.includes(it));
+      const hasItems = items.length > 0 && items.some(it => parseFloat(it.price) > 0);
+      const shares = {};
+
+      if (hasItems) {
+        lines.push(rPadC('ITEMIZED DISHES'));
+        const personBillTotals = {};
+        const personOutsideTotals = {};
+        diners.forEach(cid => { 
+          personBillTotals[cid] = 0; 
+          personOutsideTotals[cid] = 0; 
+        });
+
+        let billItemsSum = 0;
+        items.forEach(it => {
+          const p = parseFloat(it.price) || 0;
+          const cids = (it.consumed_by && it.consumed_by.length > 0) ? it.consumed_by : diners;
+          const isOut = outsideItems.includes(it);
+          if (cids.length > 0 && p > 0) {
+            const share = p / cids.length;
+            cids.forEach(cid => {
+              if (isOut) {
+                personOutsideTotals[cid] = (personOutsideTotals[cid] || 0) + share;
+              } else {
+                personBillTotals[cid] = (personBillTotals[cid] || 0) + share;
+              }
+            });
+            if (!isOut) billItemsSum += p;
+          }
+          const sharedBy = cids.map(cid => getMemberName(cid)).join(', ');
+          const extraPayer = (it.paid_by && it.paid_by !== payerId) ? (' [Paid by ' + getMemberName(it.paid_by) + ']') : '';
+          lines.push(rPadRow(it.name || 'Dish', fmt(p)));
+          lines.push('  ↳ (' + sharedBy + ')' + extraPayer);
+        });
+        lines.push(rDiv('-'));
+
+        diners.forEach(cid => {
+          const consumedBill = personBillTotals[cid] || 0;
+          const consumedOut = personOutsideTotals[cid] || 0;
+          let billShare = 0;
+
+          if (billItemsSum > 0) {
+            if (taxSplitMethod === 'proportional') {
+              billShare = consumedBill * (targetBill / billItemsSum);
+            } else {
+              const tShare = targetBill > targetFood ? ((targetBill - targetFood) / numConsumers) : 0;
+              const fShare = targetFood > 0 ? (consumedBill * (targetFood / billItemsSum)) : (consumedBill * (targetBill / billItemsSum));
+              billShare = fShare + tShare;
+            }
+          } else {
+            billShare = targetBill / numConsumers;
+          }
+          shares[cid] = billShare + consumedOut;
+        });
+      } else {
+        const perPerson = targetBill / numConsumers;
+        diners.forEach(cid => {
+          shares[cid] = perPerson;
+        });
+      }
+
+      if (isTreat) {
+        lines.push(rPadC('🎁 SPECIAL: HOSTED AS A TREAT'));
+        lines.push(rPadC('Paid 100% by ' + payerName));
+        lines.push(rPadC('Friends & Guests owe: ₹0.00'));
+      } else {
+        lines.push(rPadC('INDIVIDUAL NET SHARES'));
+        diners.forEach(cid => {
+          lines.push(rPadRow(getMemberName(cid), fmt(shares[cid] || 0)));
+        });
+        lines.push(rDiv('-'));
+
+        lines.push('PAYMENT DUES:');
+        diners.forEach(cid => {
+          if (cid !== payerId) {
+            let advCredit = 0;
+            const parts = [];
+            if (cover > 0 && cid === coverPayerId) {
+              advCredit += cover;
+              parts.push('₹' + cover.toFixed(2) + ' Cover');
+            }
+            if (coins > 0 && !includeCoins && cid === coinsOwnerId) {
+              advCredit += coins;
+              parts.push('₹' + coins.toFixed(2) + ' Coins');
+            }
+            items.forEach(it => {
+              if (it.paid_by === cid && cid !== payerId) {
+                const ip = parseFloat(it.price) || 0;
+                if (ip > 0) {
+                  advCredit += ip;
+                  parts.push('₹' + ip.toFixed(2) + ' ' + (it.name || 'item'));
+                }
+              }
+            });
+
+            const netOwed = (shares[cid] || 0) - advCredit;
+            const name = getMemberName(cid);
+            if (netOwed > 0) {
+              lines.push(rPadRow('- ' + name + ' owes ' + payerName + ':', fmt(netOwed)));
+              if (payerUpi) {
+                const cleanUpi = payerUpi.trim();
+                const amtStr = netOwed.toFixed(2);
+                const payLink = 'upi://pay?pa=' + encodeURIComponent(cleanUpi) + '&pn=' + encodeURIComponent(payerName) + '&am=' + amtStr + '&cu=INR&tn=' + encodeURIComponent(desc);
+                lines.push('  Pay Link: [Pay via UPI](' + payLink + ')');
+              }
+            } else if (netOwed < 0) {
+              lines.push(rPadRow('- ' + payerName + ' reimburses ' + name + ':', fmt(Math.abs(netOwed))));
+            }
+          }
+        });
+
+        if (payerUpi) {
+          lines.push(rPadRow('PAYER UPI:', payerUpi.trim()));
+        }
+      }
+
+      lines.push(rDiv('='));
+      lines.push(rPadC('*Auto-generated*'));
+      return lines.join('\n');
+    };
+
+    // Payer UPI ID Sync & QR
+    const payerUpiInput = document.getElementById('r_payer_upi');
+    const payerSelect = document.getElementById('r_paid_by');
+    const viewQrBtn = document.getElementById('viewQrBtn');
+    const copyBtn = document.getElementById('copySummaryBtn');
+
+    function syncPayerUpi() {
+      if (!payerSelect || !payerUpiInput) return;
+      const pid = payerSelect.value;
+      const member = members.find(m => m.id === pid);
+      const savedLocal = localStorage.getItem('tallyup_upi_' + pid);
+      if (savedLocal) {
+        payerUpiInput.value = savedLocal;
+      } else if (member && member.upi_id) {
+        payerUpiInput.value = member.upi_id;
+      }
+      updateQrBtnState();
+    }
+
+    function updateQrBtnState() {
+      const upi = payerUpiInput?.value.trim();
+      if (viewQrBtn) viewQrBtn.classList.toggle('hidden', !upi);
+    }
+
+    if (payerSelect) {
+      payerSelect.addEventListener('change', () => {
+        syncPayerUpi();
+        updateItemDefaultPayerLabels();
+        updateSummary();
+      });
+    }
+
+    if (payerUpiInput) {
+      payerUpiInput.addEventListener('input', () => {
+        const pid = payerSelect?.value;
+        const upi = payerUpiInput.value.trim();
+        if (pid && upi) {
+          localStorage.setItem('tallyup_upi_' + pid, upi);
+        }
+        updateQrBtnState();
+        updateSummary();
+      });
+      syncPayerUpi();
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const text = generateDetailedTextBreakup();
+        const copyTextEl = document.getElementById('copyText');
+        const showCopied = () => {
+          if (copyTextEl) copyTextEl.textContent = 'Copied!';
+          copyBtn.classList.add('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+          setTimeout(() => {
+            if (copyTextEl) copyTextEl.textContent = 'Copy Breakdown';
+            copyBtn.classList.remove('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+          }, 2200);
+        };
+        copyTextToClipboard(text, showCopied);
+      });
+    }
+
+    if (viewQrBtn) {
+      viewQrBtn.addEventListener('click', () => {
+        const upi = payerUpiInput?.value.trim();
+        if (!upi) return;
+        const payerName = getMemberName(payerSelect?.value);
+        const desc = document.getElementById('r_description')?.value.trim() || 'Restaurant Expense';
+        const upiUri = `upi://pay?pa=${encodeURIComponent(upi)}&pn=${encodeURIComponent(payerName)}&cu=INR&tn=${encodeURIComponent(desc)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiUri)}&margin=1`;
+
+    document.getElementById('qrModalImg').src = qrUrl;
+    document.getElementById('qrModalName').textContent = `Pay ${payerName}`;
+    document.getElementById('qrModalAmount').textContent = `UPI Pay: ${upi}`;
+    document.getElementById('qrModalUpi').textContent = upi;
+    document.getElementById('qrModalDeepLink').href = upiUri;
+
+    const qrModal = document.getElementById('qrModal');
+    qrModal?.classList.remove('hidden');
+    qrModal?.classList.add('flex');
+  });
+    }
+
+  updateSummary();
+  }
+
+  // ── Global QR Modal Close Listeners ──
+  const qrModal = document.getElementById('qrModal');
+  const closeQrModal = document.getElementById('closeQrModal');
+  if (closeQrModal && qrModal) {
+    closeQrModal.addEventListener('click', () => {
+      qrModal.classList.add('hidden');
+      qrModal.classList.remove('flex');
+    });
+    qrModal.addEventListener('click', (e) => {
+      if (e.target === qrModal) {
+        qrModal.classList.add('hidden');
+        qrModal.classList.remove('flex');
+      }
+    });
+  }
+
+  document.getElementById('copyModalUpiBtn')?.addEventListener('click', async () => {
+    const upi = (currentMode === 'simple')
+      ? document.getElementById('s_payer_upi')?.value.trim()
+      : document.getElementById('r_payer_upi')?.value.trim();
+    if (upi && navigator.clipboard) {
+      await navigator.clipboard.writeText(upi);
+      const btn = document.getElementById('copyModalUpiBtn');
+      if (btn) {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy UPI ID'; }, 2000);
+      }
+    }
+  });
+
+  // Global delegated click listener for Copy Breakdown buttons
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#copySummaryBtn, #s_copySummaryBtn, .copy-breakdown-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const isRest = (btn.id === 'copySummaryBtn' || currentMode === 'restaurant');
+    const text = isRest ? generateDetailedTextBreakup() : generateSimpleTextBreakdown();
+    const copyTextEl = btn.querySelector('#copyText, #s_copyText') || btn;
+    const origText = copyTextEl.textContent || 'Copy Breakdown';
+    copyTextToClipboard(text, () => {
+      copyTextEl.textContent = 'Copied!';
+      btn.classList.add('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+      setTimeout(() => {
+        copyTextEl.textContent = origText;
+        btn.classList.remove('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+      }, 2200);
+    });
+  });
+
+  // ── Date Picker Controller ──
+  function setupDatePicker(displayId, dateInputId, btnId) {
+    const display = document.getElementById(displayId);
+    const dateInput = document.getElementById(dateInputId);
+    const btn = document.getElementById(btnId);
+    if (!display || !dateInput) return;
+
+    function updateDisplay() {
+      if (!dateInput.value) {
+        display.value = '';
+        return;
+      }
+      const d = new Date(dateInput.value + 'T00:00:00');
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        display.value = `${day}-${months[d.getMonth()]}-${d.getFullYear()}`;
+      }
+    }
+
+    const triggerPicker = () => {
+      if (dateInput.showPicker) {
+        try { dateInput.showPicker(); } catch (e) { dateInput.click(); }
+      } else {
+        dateInput.click();
+      }
+    };
+
+    if (btn) btn.addEventListener('click', triggerPicker);
+    display.addEventListener('click', triggerPicker);
+    dateInput.addEventListener('change', updateDisplay);
+    if (dateInput.value) updateDisplay();
+  }
+
+  setupDatePicker('s_date_display', 's_date', 's_openCalendarBtn');
+  setupDatePicker('r_date_display', 'r_date', 'r_openCalendarBtn');
+
+  // =========================================================================
+  // UNIVERSAL RECEIPT SCANNER (100% Free, Local RapidOCR PP-OCRv4)
+  // =========================================================================
+  const scannerModal = document.getElementById('receiptScannerModal');
+  const openScannerBtn = document.getElementById('openScannerBtn');
+  const closeScannerModalBtn = document.getElementById('closeScannerModalBtn');
+  const receiptDropzone = document.getElementById('receiptDropzone');
+  const receiptFileInput = document.getElementById('receiptFileInput');
+  const scannerDropzoneState = document.getElementById('scannerDropzoneState');
+  const scannerLoadingState = document.getElementById('scannerLoadingState');
+  const scannerErrorState = document.getElementById('scannerErrorState');
+  const scannerErrorMessage = document.getElementById('scannerErrorMessage');
+  const scannerRetryBtn = document.getElementById('scannerRetryBtn');
+  const scannerPreviewState = document.getElementById('scannerPreviewState');
+  const applyScannedBtn = document.getElementById('applyScannedBtn');
+  const switchItemizedScannedBtn = document.getElementById('switchItemizedScannedBtn');
+  const cancelScannedBtn = document.getElementById('cancelScannedBtn');
+
+  let currentScannedData = null;
+
+  function showScannerState(state) {
+    if (scannerDropzoneState) scannerDropzoneState.classList.toggle('hidden', state !== 'dropzone');
+    if (scannerLoadingState) {
+      scannerLoadingState.classList.toggle('hidden', state !== 'loading');
+      scannerLoadingState.classList.toggle('flex', state === 'loading');
+    }
+    if (scannerErrorState) scannerErrorState.classList.toggle('hidden', state !== 'error');
+    if (scannerPreviewState) scannerPreviewState.classList.toggle('hidden', state !== 'preview');
+  }
+
+  function openScanner() {
+    currentScannedData = null;
+    showScannerState('dropzone');
+    if (scannerModal) {
+      scannerModal.classList.remove('hidden');
+      scannerModal.classList.add('flex');
+    }
+  }
+
+  function closeScanner() {
+    if (scannerModal) {
+      scannerModal.classList.add('hidden');
+      scannerModal.classList.remove('flex');
+    }
+  }
+
+  document.querySelectorAll('#openScannerBtn, .trigger-scanner-btn').forEach(btn => {
+    btn.addEventListener('click', openScanner);
+  });
+  // Delegated click listener so any scan button anywhere works reliably
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('#openScannerBtn, .trigger-scanner-btn');
+    if (trigger) {
+      e.preventDefault();
+      openScanner();
+    }
+  });
+  if (closeScannerModalBtn) closeScannerModalBtn.addEventListener('click', closeScanner);
+  if (scannerModal) {
+    scannerModal.addEventListener('click', (e) => {
+      if (e.target === scannerModal) closeScanner();
+    });
+  }
+
+  // Check URL scan=true param
+  if (new URLSearchParams(window.location.search).get('scan') === 'true') {
+    openScanner();
+  }
+
+  // Dropzone file handling
+  if (receiptDropzone && receiptFileInput) {
+    receiptDropzone.addEventListener('click', () => {
+      receiptFileInput.click();
+    });
+
+    receiptDropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      receiptDropzone.classList.add('border-sky-400', 'bg-sky-500/10');
+    });
+
+    ['dragleave', 'dragend'].forEach(ev => {
+      receiptDropzone.addEventListener(ev, () => {
+        receiptDropzone.classList.remove('border-sky-400', 'bg-sky-500/10');
+      });
+    });
+
+    receiptDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      receiptDropzone.classList.remove('border-sky-400', 'bg-sky-500/10');
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        handleReceiptFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  if (receiptFileInput) {
+    receiptFileInput.addEventListener('change', () => {
+      if (receiptFileInput.files.length > 0) {
+        handleReceiptFile(receiptFileInput.files[0]);
+      }
+    });
+  }
+
+  if (scannerRetryBtn || cancelScannedBtn) {
+    [scannerRetryBtn, cancelScannedBtn].forEach(btn => {
+      if (btn) btn.addEventListener('click', () => {
+        if (receiptFileInput) receiptFileInput.value = '';
+        showScannerState('dropzone');
+      });
+    });
+  }
+
+  // Perform Local OCR scanning
+  async function handleReceiptFile(file) {
+    if (!file) return;
+    showScannerState('loading');
+
+    const formData = new FormData();
+    formData.append('receipt', file);
+
+    try {
+      const response = await fetch('/api/scan_receipt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const res = await response.json();
+      if (!res.success || !res.data) {
+        throw new Error(res.error || 'Unable to detect legible receipt details.');
+      }
+
+      displayScannedPreview(res.data);
+    } catch (err) {
+      if (scannerErrorMessage) {
+        scannerErrorMessage.textContent = err.message || 'Error parsing receipt image.';
+      }
+      showScannerState('error');
+    }
+  }
+
+  // Display parsed review card
+  function displayScannedPreview(data) {
+    currentScannedData = data;
+
+    // Category styling
+    const catBadge = document.getElementById('previewCategoryBadge');
+    if (catBadge) {
+      const cat = data.category || 'retail';
+      let icon = '🛍️';
+      let label = 'Retail';
+      let cls = 'bg-pink-500/20 text-pink-300 border border-pink-400/30';
+
+      if (cat === 'dining') {
+        icon = '🍽️'; label = 'Restaurant Bill'; cls = 'bg-amber-500/20 text-amber-300 border border-amber-400/30';
+      } else if (cat === 'fuel') {
+        icon = '⛽'; label = 'Fuel Pump'; cls = 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+      } else if (cat === 'grocery') {
+        icon = '🛒'; label = 'Supermarket / Grocery'; cls = 'bg-purple-500/20 text-purple-300 border border-purple-400/30';
+      } else if (cat === 'transport') {
+        icon = '🚕'; label = 'Cab / Ride'; cls = 'bg-sky-500/20 text-sky-300 border border-sky-400/30';
+      } else if (cat === 'hotel') {
+        icon = '🏨'; label = 'Hotel / Stay'; cls = 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/30';
+      }
+
+      catBadge.className = `rounded-lg px-2.5 py-1 text-xs font-semibold ${cls}`;
+      catBadge.textContent = `${icon} ${label}`;
+    }
+
+    // Title & Date
+    const titleEl = document.getElementById('previewTitle');
+    if (titleEl) titleEl.textContent = data.suggested_title || data.merchant_name || 'Receipt';
+
+    const dateEl = document.getElementById('previewDate');
+    if (dateEl) dateEl.textContent = data.date_display || data.date || '';
+
+    // Totals grid
+    const tbEl = document.getElementById('previewTotalBill');
+    if (tbEl) tbEl.textContent = fmt(data.total_bill || 0);
+
+    const subEl = document.getElementById('previewSubtotal');
+    if (subEl) subEl.textContent = fmt(data.subtotal || 0);
+
+    const taxEl = document.getElementById('previewTaxes');
+    if (taxEl) {
+      const pct = data.tax_percent ? `${data.tax_percent}%` : '';
+      const amt = fmt(data.total_tax || 0);
+      taxEl.textContent = pct ? `${pct} (${amt})` : amt;
+    }
+
+    const scEl = document.getElementById('previewServiceCharge');
+    if (scEl) {
+      scEl.textContent = fmt(data.service_charge || 0);
+    }
+
+    // Checksum badge
+    const chkBadge = document.getElementById('previewChecksumBadge');
+    if (chkBadge) {
+      chkBadge.classList.toggle('hidden', !data.has_checksum_match);
+    }
+
+    // Payer guess
+    const payerBadge = document.getElementById('previewPayerBadge');
+    const payerNameEl = document.getElementById('previewPayerName');
+    if (payerBadge && payerNameEl) {
+      if (data.payer_name) {
+        payerNameEl.textContent = data.payer_name;
+        payerBadge.classList.remove('hidden');
+        payerBadge.classList.add('flex');
+      } else {
+        payerBadge.classList.add('hidden');
+        payerBadge.classList.remove('flex');
+      }
+    }
+
+    // Items list preview
+    const itemsListEl = document.getElementById('previewItemsList');
+    const itemsCountEl = document.getElementById('previewItemsCount');
+    const itemsContainer = document.getElementById('previewItemsContainer');
+
+    const items = data.items || [];
+    if (itemsCountEl) itemsCountEl.textContent = items.length;
+
+    if (itemsListEl) {
+      if (items.length === 0) {
+        if (itemsContainer) itemsContainer.classList.add('hidden');
+      } else {
+        if (itemsContainer) itemsContainer.classList.remove('hidden');
+        itemsListEl.innerHTML = items.map((it, idx) => `
+          <div class="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs">
+            <span class="text-white font-medium truncate pr-2">${idx + 1}. ${escapeHtml(it.name)}</span>
+            <span class="text-slate-200 font-semibold font-mono shrink-0">${fmt(it.price)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Action button labels & visibility
+    if (currentMode === 'restaurant') {
+      applyScannedBtn.innerHTML = `<span>✨ Auto-fill Restaurant Bill & ${items.length} Dishes</span>`;
+      switchItemizedScannedBtn.classList.add('hidden');
+    } else {
+      // In Simple mode
+      if (items.length > 1) {
+        applyScannedBtn.innerHTML = `<span>💰 Apply as Simple Lump Sum (${fmt(data.total_bill || 0)})</span>`;
+        switchItemizedScannedBtn.classList.remove('hidden');
+      } else {
+        applyScannedBtn.innerHTML = `<span>✨ Auto-fill Simple Expense (${fmt(data.total_bill || 0)})</span>`;
+        switchItemizedScannedBtn.classList.add('hidden');
+      }
+    }
+
+    showScannerState('preview');
+  }
+
+  // Match payer to trip member
+  function matchPayerToMemberId(payerGuess) {
+    if (!payerGuess || !members || members.length === 0) return null;
+    const cleanGuess = payerGuess.toLowerCase().trim();
+    const found = members.find(m => {
+      const mn = (m.name || '').toLowerCase().trim();
+      return mn === cleanGuess || mn.includes(cleanGuess) || cleanGuess.includes(mn);
+    });
+    return found ? found.id : null;
+  }
+
+  // Apply to Form handler
+  if (applyScannedBtn) {
+    applyScannedBtn.addEventListener('click', () => {
+      if (!currentScannedData) return;
+      applyReceiptDataToCurrentForm(currentScannedData);
+      closeScanner();
+    });
+  }
+
+  // Switch to Restaurant & Itemize handler
+  if (switchItemizedScannedBtn) {
+    switchItemizedScannedBtn.addEventListener('click', () => {
+      if (!currentScannedData) return;
+      const scanPayload = JSON.stringify(currentScannedData);
+      sessionStorage.setItem('tallyup_pending_scan', scanPayload);
+      const eventId = document.getElementById('s_event_id')?.value || '';
+      window.location.href = `{{ url_for('add_expense', trip_id=trip.id, mode='restaurant') }}${eventId ? '&event_id=' + encodeURIComponent(eventId) : ''}`;
+    });
+  }
+
+  function applyReceiptDataToCurrentForm(data) {
+    if (currentMode === 'restaurant') {
+      // 0. Event match if passed
+      if (data.event_id) {
+        const evSel = document.getElementById('r_event_id');
+        if (evSel) evSel.value = data.event_id;
+      }
+
+      // 1. Description & Restaurant Name
+      const descInput = document.getElementById('r_description');
+      if (descInput) descInput.value = data.suggested_title || data.merchant_name || 'Restaurant Bill';
+
+      // 2. Bill amount
+      const billInput = document.getElementById('r_total_bill');
+      if (billInput && data.total_bill) billInput.value = data.total_bill;
+
+      // 3. Voluntary service charge
+      const scInput = document.getElementById('r_service_charge');
+      if (scInput) scInput.value = data.service_charge || 0;
+
+      // 4. Taxes
+      const taxAmtInput = document.getElementById('r_tax_amt');
+      if (taxAmtInput) taxAmtInput.value = data.total_tax || 0;
+      const taxPctInput = document.getElementById('r_tax_pct');
+      if (taxPctInput && data.tax_percent) taxPctInput.value = data.tax_percent;
+
+      // 5. Date
+      if (data.date) {
+        const dateInput = document.getElementById('r_date');
+        const dateDisplay = document.getElementById('r_date_display');
+        if (dateInput) dateInput.value = data.date;
+        if (dateDisplay) dateDisplay.value = data.date_display || data.date;
+      }
+
+      // 6. Payer match
+      const matchedPayerId = matchPayerToMemberId(data.payer_name);
+      if (matchedPayerId) {
+        const payerSelect = document.getElementById('r_paid_by');
+        if (payerSelect) {
+          payerSelect.value = matchedPayerId;
+          payerSelect.dispatchEvent(new Event('change'));
+        }
+      }
+
+      // 7. Line items (dishes)
+      if (data.items && data.items.length > 0) {
+        const itemsList = document.getElementById('itemsList');
+        if (itemsList) itemsList.innerHTML = '';
+        itemCounter = 0;
+        data.items.forEach(it => {
+          // isOutside = false (dishes from paper bill)
+          addItemWithData(it.name || 'Item', it.price || 0, null, '', false);
+        });
+      }
+
+      updateSummary();
+    } else {
+      // Simple Mode
+      if (data.event_id) {
+        const evSel = document.getElementById('s_event_id');
+        if (evSel) evSel.value = data.event_id;
+      }
+
+      const descInput = document.getElementById('s_description');
+      if (descInput) descInput.value = data.suggested_title || data.merchant_name || 'Expense';
+
+      const amountInput = document.getElementById('s_amount');
+      if (amountInput && data.total_bill) amountInput.value = data.total_bill;
+
+      if (data.date) {
+        const dateInput = document.getElementById('s_date');
+        const dateDisplay = document.getElementById('s_date_display');
+        if (dateInput) dateInput.value = data.date;
+        if (dateDisplay) dateDisplay.value = data.date_display || data.date;
+      }
+
+      const matchedPayerId = matchPayerToMemberId(data.payer_name);
+      if (matchedPayerId) {
+        const payerSelect = document.getElementById('s_paid_by');
+        if (payerSelect) {
+          payerSelect.value = matchedPayerId;
+          payerSelect.dispatchEvent(new Event('change'));
+        }
+      }
+
+      updateSimpleSummary();
+    }
+  }
+
+  // Check if user came from "Switch to Restaurant" or Event Creation pending scan
+  const pendingScan = sessionStorage.getItem('tallyup_pending_scan') ||
+                      localStorage.getItem('tallyup_pending_scan');
+  if (pendingScan) {
+    try {
+      const data = JSON.parse(pendingScan);
+      sessionStorage.removeItem('tallyup_pending_scan');
+      localStorage.removeItem('tallyup_pending_scan');
+      applyReceiptDataToCurrentForm(data);
+      setTimeout(() => {
+        applyReceiptDataToCurrentForm(data);
+      }, 60);
+    } catch (e) {
+      console.error('Error applying pending scan data:', e);
+      sessionStorage.removeItem('tallyup_pending_scan');
+      localStorage.removeItem('tallyup_pending_scan');
+    }
+  }
+
+  // Auto-open scanner if requested via URL query param (?scan=true)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('scan') === 'true') {
+    openScanner();
+  }
+</script>
+{% endblock %}

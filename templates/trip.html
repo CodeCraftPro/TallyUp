@@ -1,0 +1,1191 @@
+{% extends "base.html" %}
+{% block title %}TallyUp — {{ trip.name }}{% endblock %}
+
+{% block content %}
+<!-- Trip Header -->
+<header class="mb-6 slide-up">
+  <div
+    class="flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-white/5 p-5 backdrop-blur-xl sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+    <div class="flex items-center gap-4">
+      <div
+        class="flex h-14 w-14 items-center justify-center rounded-2xl {{ 'bg-slate-800 text-2xl' if trip.is_general else 'bg-gradient-to-br from-sky-500/20 to-violet-500/20 text-2xl' }}">
+        {{ '🧾' if trip.is_general else '📁' }}
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-3xl font-semibold tracking-tight text-white">{{ trip.name }}</h1>
+          {% if trip.group_name %}
+          <span
+            class="rounded-md border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-300">{{
+            trip.group_name }}</span>
+          {% endif %}
+        </div>
+        <p class="mt-1 text-sm text-slate-400">
+          {% if trip.date %}{{ trip.date|format_date }} · {% endif %}
+          {{ events|length }} event{{ '' if events|length == 1 else 's' }} ·
+          {{ members|length }} member{{ '' if members|length == 1 else 's' }}
+        </p>
+        <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+          {% for m in members %}
+          <span
+            class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-slate-950/60 px-2 py-0.5 text-xs text-slate-200">
+            <span>{{ m.avatar }}</span>
+            <span>{{ m.name }}</span>
+          </span>
+          {% endfor %}
+          <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('hidden')"
+            class="inline-flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-400/20 active:scale-95"
+            title="Add or remove members for this trip">
+            <span>+ Edit Group</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" id="copyTripBreakdownBtn"
+        class="rounded-2xl border border-sky-400/40 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 shadow-lg shadow-sky-500/10 transition hover:bg-sky-500/20 active:scale-95"
+        title="Copy clean detailed WhatsApp summary for the whole trip">
+        Copy Trip Summary
+      </button>
+
+      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple') }}"
+        class="rounded-2xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400">+
+        Simple Expense</a>
+      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant') }}"
+        class="rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 transition hover:from-amber-400 hover:to-orange-400">🍽️
+        Restaurant Bill</a>
+      <a href="{{ url_for('trip_settle', trip_id=trip.id) }}"
+        class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:border-emerald-400/40 hover:bg-emerald-400/10">Settlement
+        →</a>
+      {% if not trip.is_general %}
+      <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" class="inline"
+        onsubmit="return confirm('Delete this trip and all its expenses?')">
+        <button type="submit"
+          class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100">Delete
+          Trip</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+  <!-- Left: Events & Expenses -->
+  <div class="space-y-6">
+    <!-- Add Event Card -->
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-5 backdrop-blur-xl fade-in space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+          <span>Add an event</span>
+          <span class="rounded-full bg-indigo-500/10 border border-indigo-400/20 px-2 py-0.5 text-[10px] font-medium text-indigo-300">Fast Auto-Creation</span>
+        </h2>
+      </div>
+
+      <!-- Drag & Drop Receipt Zone (supports drag-and-drop & file selection) -->
+      <div id="eventReceiptDropzone" class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-indigo-400/30 bg-indigo-500/[0.03] p-5 text-center transition hover:border-indigo-400/60 hover:bg-indigo-500/[0.07] cursor-pointer">
+        <input type="file" id="eventReceiptFileInput" accept="image/*" class="sr-only">
+        <div class="flex items-center gap-3.5">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/20 text-2xl text-indigo-300 transition group-hover:scale-110">
+            🧾
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-semibold text-white">
+              Drag & drop receipt photo here, or <span class="text-sky-300 underline underline-offset-2">browse image</span>
+            </p>
+            <p class="mt-0.5 text-[11px] text-slate-400">
+              RapidOCR detects venue, meal time & auto-fills dishes, prices & taxes
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Loading State for Event Receipt Scanning -->
+      <div id="eventScanLoading"
+        class="hidden items-center gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-200">
+        <span class="flex h-3 w-3 rounded-full bg-indigo-400 animate-pulse"></span>
+        <span>Scanning receipt locally with RapidOCR... Extracting meal type & venue</span>
+      </div>
+
+      <!-- Scanned Event Preview Card -->
+      <div id="eventScanPreview"
+        class="hidden rounded-2xl border border-indigo-400/30 bg-indigo-950/40 p-4 space-y-3 animate-in fade-in">
+        <div class="flex items-center justify-between">
+          <span id="eventScanBadge"
+            class="rounded-lg bg-amber-500/20 border border-amber-400/30 px-2 py-0.5 text-xs font-semibold text-amber-200"></span>
+          <span id="eventScanAmount" class="text-xs font-bold text-white"></span>
+        </div>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Detected Event Name (editable)</label>
+            <input type="text" id="eventScanNameInput"
+              class="h-9 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-indigo-400">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Event Type (editable)</label>
+            <select id="eventScanTypeSelect"
+              class="h-9 w-full rounded-lg border border-white/10 bg-slate-900 px-2 text-xs text-white outline-none focus:border-indigo-400">
+              {% for key, val in event_types.items() %}
+              <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
+          <button type="button" id="autoSaveEventExpenseBtn"
+            class="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2.5 text-xs font-semibold text-white shadow-md hover:from-emerald-400 hover:to-teal-500 transition">
+            ⚡ Save Event & Expenses Directly
+          </button>
+          <button type="button" id="createEventAndSplitBtn"
+            class="rounded-xl border border-sky-400/40 bg-sky-500/20 px-3.5 py-2.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/30 transition">
+            ✏️ Open Bill & Edit Split →
+          </button>
+          <button type="button" id="cancelEventScanBtn"
+            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-medium text-slate-400 hover:text-white transition"
+            title="Dismiss">
+            ✕
+          </button>
+        </div>
+      </div>
+
+            <div class="flex items-center gap-3">
+        <div class="h-px flex-1 bg-white/10"></div>
+        <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">or enter event manually</span>
+        <div class="h-px flex-1 bg-white/10"></div>
+      </div>
+
+      <!-- Standard Manual Form -->
+      <form id="manualEventForm" method="post" action="{{ url_for('create_event', trip_id=trip.id) }}"
+        class="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div class="flex-1">
+          <label for="event_name" class="mb-1 block text-sm text-slate-300">Event name</label>
+          <input id="event_name" name="event_name" type="text" required maxlength="60"
+            placeholder="e.g. Dinner at Paradise"
+            class="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+        </div>
+        <div class="w-full sm:w-40">
+          <label for="event_type" class="mb-1 block text-sm text-slate-300">Type</label>
+          <select id="event_type" name="event_type"
+            class="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white outline-none transition focus:border-sky-400/60">
+            {% for key, val in event_types.items() %}
+            <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit"
+          class="h-11 rounded-xl bg-sky-500 px-5 text-sm font-semibold text-white transition hover:bg-sky-400 active:scale-[0.99]">+
+          Add</button>
+      </form>
+    </div>
+
+    <!-- Events list -->
+    {% for event in events %}
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">{{ event.type_icon }}</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-xl font-semibold text-white">{{ event.name }}</h2>
+              <button type="button"
+                onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')"
+                class="rounded-lg border border-white/10 bg-white/5 p-1 text-xs text-slate-400 hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-white transition"
+                title="Edit Event Name & Type">
+                ✏️
+              </button>
+            </div>
+            <p class="text-sm text-slate-400">{{ event.type_label }} · {{ event.expenses|length }} expense{{ '' if
+              event.expenses|length == 1 else 's' }} · {{ event.total|currency }}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}"
+            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:border-sky-400/40 hover:bg-sky-400/10">+
+            Simple</a>
+          <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}"
+            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-amber-300 transition hover:border-amber-400/40 hover:bg-amber-400/10">🍽️
+            Dineout</a>
+          <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}" class="inline"
+            onsubmit="return confirm('Delete this event and all its expenses?')">
+            <button type="submit"
+              class="rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-slate-400 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-200"
+              title="Delete Event">✕</button>
+          </form>
+        </div>
+      </div>
+
+      {% if event.expenses %}
+      <div class="space-y-3">
+        {% for exp in event.expenses %}
+        <article
+          class="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/[0.07]">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="space-y-1.5 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span
+                  class="rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wider {{ 'bg-amber-400/10 text-amber-200' if exp.mode == 'restaurant' else 'bg-sky-400/10 text-sky-200' }}">
+                  {{ '🍽️ Restaurant' if exp.mode == 'restaurant' else '💰 Simple' }}
+                </span>
+                {% if exp.is_treat %}
+                <span
+                  class="rounded-full bg-purple-500/20 border border-purple-400/40 px-2 py-0.5 text-xs font-semibold text-purple-200">
+                  🎁 Treat
+                </span>
+                {% endif %}
+                <h3 class="text-lg font-semibold text-white">{{ exp.description }}</h3>
+                <span class="rounded-full bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-200">{{
+                  exp.display_amount|currency }}</span>
+              </div>
+              {% if exp.is_treat %}
+              <p class="text-sm text-purple-300 font-medium">🎁 Hosted as a Treat by <span class="text-white">{{
+                  exp.paid_by_name }}</span> (Friends owe ₹0.00)</p>
+              <p class="text-xs text-slate-400">Attendees: {{ exp.consumer_names|join(', ') }}</p>
+              {% else %}
+              <p class="text-sm text-slate-300">Paid by <span class="font-medium text-white">{{ exp.paid_by_name
+                  }}</span></p>
+              <p class="text-sm text-slate-400">Split among {{ exp.consumer_names|join(', ') }}</p>
+              {% endif %}
+
+              {% if exp.mode == 'restaurant' %}
+              <div class="mt-2 flex flex-wrap gap-2">
+                {% if exp.discount_percent and exp.discount_percent != '0' %}
+                <span class="rounded-lg bg-emerald-400/10 px-2 py-1 text-xs text-emerald-200">{{ exp.discount_percent
+                  }}% discount</span>
+                {% endif %}
+                {% if exp.convenience_fee and exp.convenience_fee != '0' %}
+                <span class="rounded-lg bg-amber-400/10 px-2 py-1 text-xs text-amber-200">+₹{{ exp.convenience_fee }}
+                  fee</span>
+                {% endif %}
+                {% if exp.service_charge and exp.service_charge != '0' %}
+                <span class="rounded-lg bg-violet-400/10 px-2 py-1 text-xs text-violet-200">Service: ₹{{
+                  exp.service_charge }}</span>
+                {% endif %}
+                {% if exp.tax_amount and exp.tax_amount != '0' %}
+                <span class="rounded-lg bg-teal-400/10 px-2 py-1 text-xs text-teal-200">Tax: ₹{{ exp.tax_amount }}
+                  (included)</span>
+                {% elif exp.tax_percent and exp.tax_percent != '0' %}
+                <span class="rounded-lg bg-teal-400/10 px-2 py-1 text-xs text-teal-200">Tax: {{ exp.tax_percent }}%
+                  (included)</span>
+                {% endif %}
+                {% if exp.has_items and ((exp.tax_percent and exp.tax_percent != '0') or (exp.tax_amount and
+                exp.tax_amount != '0')) %}
+                <span class="rounded-lg bg-teal-400/10 px-2 py-1 text-xs text-teal-200">
+                  Tax split: {{ 'Equally' if exp.tax_split_method == 'equal' else 'Proportional' }}
+                </span>
+                {% endif %}
+                {% if exp.cover_charge_total and exp.cover_charge_total != '0' %}
+                <span class="rounded-lg bg-violet-400/10 px-2 py-1 text-xs text-violet-200">Table Booking: ₹{{
+                  exp.cover_charge_total }} ({{ exp.cover_paid_by_name }})</span>
+                {% elif exp.cover_charge_per_person and exp.cover_charge_per_person != '0' %}
+                <span class="rounded-lg bg-violet-400/10 px-2 py-1 text-xs text-violet-200">Table Booking: ₹{{
+                  exp.cover_charge_per_person }}/person ({{ exp.cover_paid_by_name }})</span>
+                {% endif %}
+                {% if exp.dineout_coins and exp.dineout_coins != '0' %}
+                <span class="rounded-lg bg-amber-400/10 px-2 py-1 text-xs text-amber-200">
+                  Coins: ₹{{ exp.dineout_coins }} ({{ exp.coins_by_name }})
+                  {{ '· split' if exp.include_coins_in_split else '· personal' }}
+                </span>
+                {% endif %}
+                {% if exp.has_items %}
+                <span class="rounded-lg bg-sky-400/10 px-2 py-1 text-xs text-sky-200">{{ exp.enriched_items|length }}
+                  items itemized</span>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              {% if exp.has_items %}
+              <!-- Collapsible Itemized Breakdown -->
+              <div class="mt-2.5">
+                <button type="button"
+                  class="toggle-items-btn inline-flex items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-400/20 active:scale-[0.99]"
+                  data-count="{{ exp.enriched_items|length }}">
+                  <span class="btn-text">📋 View Items Breakdown ({{ exp.enriched_items|length }})</span>
+                  <span class="chevron inline-block transition-transform duration-200">▼</span>
+                </button>
+
+                <div
+                  class="items-drawer hidden mt-2.5 rounded-2xl border border-white/10 bg-slate-950/70 p-4 space-y-2.5">
+                  <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                    <span class="text-xs uppercase tracking-wider font-semibold text-sky-300">Itemized Receipt</span>
+                    <span class="text-xs text-slate-400">Total: {{ exp.display_amount|currency }}</span>
+                  </div>
+                  <div class="divide-y divide-white/5 space-y-2">
+                    {% for it in exp.enriched_items %}
+                    <div class="flex items-center justify-between pt-2 text-sm">
+                      <div>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <p class="font-medium text-white">{{ it.name }}</p>
+                          {% if it.paid_by_name and it.paid_by != exp.paid_by %}
+                          <span
+                            class="rounded-md border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                            💳 Paid by {{ it.paid_by_avatar }} {{ it.paid_by_name }}{{ ' (extra)' if it.is_outside else
+                            '' }}
+                          </span>
+                          {% endif %}
+                        </div>
+                        <p class="text-xs text-slate-400">
+                          Consumed by:
+                          {% for i in range(it.consumer_names|length) %}
+                          <span>{{ it.consumer_avatars[i] }} {{ it.consumer_names[i] }}</span>{{ ', ' if not loop.last
+                          else '' }}
+                          {% endfor %}
+                        </p>
+                      </div>
+                      <span class="font-semibold text-white">{{ it.price|currency }}</span>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Action Buttons on Expense Card -->
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button type="button"
+                class="copy-exp-btn rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-200 active:scale-95"
+                data-expense-id="{{ exp.id }}" title="Copy WhatsApp breakdown for this bill">
+                Copy
+              </button>
+              <a href="{{ url_for('edit_expense', trip_id=trip.id, expense_id=exp.id) }}"
+                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 active:scale-95">
+                Edit
+              </a>
+              <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" class="inline"
+                onsubmit="return confirm('Delete this expense?')">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="expense_id" value="{{ exp.id }}">
+                <button type="submit"
+                  class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-rose-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100">Delete</button>
+              </form>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-8 text-center">
+        <p class="text-sm text-slate-400">No expenses yet in this event. Add one above.</p>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if not events %}
+    <div class="rounded-[2rem] border border-dashed border-white/10 bg-white/[0.03] px-6 py-16 text-center">
+      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-2xl">🧾</div>
+      <h3 class="text-lg font-semibold text-white">No events yet</h3>
+      <p class="mt-2 text-sm text-slate-400">Create an event above to start tracking expenses.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Trip Balance + Mini Settlement -->
+  <aside class="space-y-6 xl:sticky xl:top-6 xl:self-start">
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-white">Trip Balance</h2>
+          <p class="mt-1 text-sm text-slate-400">For "{{ trip.name }}"</p>
+        </div>
+        <div class="rounded-xl bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-400">Live</div>
+      </div>
+
+      <div class="space-y-3">
+        {% for row in balances %}
+        {% set status_class = 'text-emerald-300' if row.balance > 0 else ('text-rose-300' if row.balance < 0
+          else 'text-slate-300' ) %} {% set bg_class='from-emerald-400/12 to-transparent' if row.balance> 0 else
+          ('from-rose-400/12 to-transparent' if row.balance < 0 else 'from-white/5 to-transparent' ) %} <div
+            class="rounded-2xl border border-white/10 bg-gradient-to-r {{ bg_class }} p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/60 text-lg">{{
+                  row.avatar }}</div>
+                <p class="text-sm font-medium text-white">{{ row.name }}</p>
+              </div>
+              <div class="text-right">
+                {% if row.balance > 0 %}
+                <p class="text-sm font-semibold {{ status_class }}">Gets back {{ row.balance|currency }}</p>
+                {% elif row.balance < 0 %} {% if row.is_fully_settled %} <p
+                  class="text-sm font-semibold text-emerald-400">Owes {{ (-row.balance)|currency }} · <span
+                    class="font-bold">✓ Settled</span></p>
+                  {% else %}
+                  <p class="text-sm font-semibold {{ status_class }}">Owes {{ (-row.balance)|currency }}</p>
+                  {% endif %}
+                  {% else %}
+                  <p class="text-sm font-semibold {{ status_class }}">Settled</p>
+                  {% endif %}
+              </div>
+            </div>
+      </div>
+      {% endfor %}
+    </div>
+    </div>
+
+    <!-- Quick Transactions Preview with Mark Settled Toggle -->
+    {% if transactions %}
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-white">Settlement</h2>
+          <p class="text-xs text-slate-400">Mark who paid their share</p>
+        </div>
+        <button type="button" id="copySettlementCardBtn"
+          class="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition">
+          Copy
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        {% for tx in transactions %}
+        {% if tx.is_settled %}
+        <div
+          class="flex items-center justify-between rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3 transition">
+          <div>
+            <p class="text-sm text-slate-200">
+              <span class="line-through text-slate-400 font-semibold">{{ tx.from }}</span>
+              <span class="text-slate-500 mx-1">→</span>
+              <span class="font-semibold text-slate-300">{{ tx.to }}</span>
+            </p>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span class="text-[11px] font-semibold text-emerald-400">✓ Settled (Paid)</span>
+              {% if tx.settled_at %}<span class="text-[10px] text-slate-500">· {{ tx.settled_at }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="line-through text-xs text-slate-500">{{ tx.amount|currency }}</span>
+            <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" class="inline">
+              <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+              <input type="hidden" name="from_name" value="{{ tx.from }}">
+              <input type="hidden" name="to_name" value="{{ tx.to }}">
+              <button type="submit"
+                class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-400 hover:text-white transition"
+                title="Mark as pending again">
+                Undo
+              </button>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3 transition">
+          <div>
+            <p class="text-sm text-slate-200">
+              <span class="font-semibold text-rose-300">{{ tx.from }}</span>
+              <span class="text-slate-500 mx-1">→</span>
+              <span class="font-semibold text-emerald-300">{{ tx.to }}</span>
+            </p>
+            <span class="text-[11px] text-amber-400/90 font-medium">Pending payment</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">{{
+              tx.amount|currency }}</span>
+            <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" class="inline">
+              <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+              <input type="hidden" name="from_name" value="{{ tx.from }}">
+              <input type="hidden" name="to_name" value="{{ tx.to }}">
+              <input type="hidden" name="amount" value="{{ tx.amount }}">
+              <button type="submit"
+                class="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/30 active:scale-95 shadow-sm">
+                Settled
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+
+      <a href="{{ url_for('trip_settle', trip_id=trip.id) }}"
+        class="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 active:scale-[0.99]">
+        <span>Full Settlement View</span>
+        <span class="transition group-hover:translate-x-1">→</span>
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Net Graph -->
+    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
+      <h2 class="mb-4 text-xl font-semibold text-white">Net Graph</h2>
+      <div class="space-y-4">
+        {% for row in balances %}
+        {% set abs_value = row.balance if row.balance >= 0 else -row.balance %}
+        {% set width = 0 if max_abs == 0 else ((abs_value / max_abs) * 100) %}
+        <div>
+          <div class="mb-2 flex items-center justify-between gap-3 text-sm">
+            <span class="flex items-center gap-2 text-slate-200"><span>{{ row.avatar }}</span><span>{{ row.name
+                }}</span></span>
+            <span
+              class="{{ 'text-emerald-300' if row.balance > 0 else ('text-rose-300' if row.balance < 0 else 'text-slate-300') }}">
+              {{ row.balance|currency if row.balance >= 0 else '-' ~ ((-row.balance)|currency) }}
+            </span>
+          </div>
+          <div class="h-3 overflow-hidden rounded-full bg-slate-800">
+            <div
+              class="h-full rounded-full transition-all duration-500 {{ 'bg-emerald-400' if row.balance > 0 else ('bg-rose-400' if row.balance < 0 else 'bg-slate-500') }}"
+              style="width: calc({{ width }} * 1%);"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+</section>
+
+<!-- Edit Event Modal -->
+<div id="editEventModal"
+  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+  <div class="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl space-y-4">
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <h3 class="text-base font-semibold text-white">Edit Event</h3>
+      <button type="button" onclick="closeEditEventModal()"
+        class="text-slate-400 hover:text-white transition text-lg px-2">✕</button>
+    </div>
+    <form id="editEventForm" method="post" action="" class="space-y-4">
+      <div>
+        <label for="modal_event_name" class="mb-1.5 block text-xs font-medium text-slate-300">Event name</label>
+        <input id="modal_event_name" name="event_name" type="text" required maxlength="60"
+          class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 text-xs text-white outline-none focus:border-sky-400/60">
+      </div>
+      <div>
+        <label for="modal_event_type" class="mb-1.5 block text-xs font-medium text-slate-300">Type</label>
+        <select id="modal_event_type" name="event_type"
+          class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 text-xs text-white outline-none focus:border-sky-400/60">
+          {% for key, val in event_types.items() %}
+          <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+        <button type="button" onclick="closeEditEventModal()"
+          class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 hover:bg-white/10">Cancel</button>
+        <button type="submit"
+          class="rounded-xl bg-sky-500 px-5 py-2 text-xs font-semibold text-white hover:bg-sky-400">Save
+          Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Manage Trip Members Modal -->
+<div id="manageMembersModal"
+  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+  <div class="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl space-y-4">
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <div>
+        <h3 class="text-base font-semibold text-white">Manage Trip Group</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Select who belongs to {{ trip.name }} or add new people.</p>
+      </div>
+      <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('hidden')"
+        class="text-slate-400 hover:text-white">✕</button>
+    </div>
+    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" class="space-y-4">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-medium text-slate-300 uppercase tracking-wider">Trip Participants</label>
+          <span class="text-[11px] text-slate-400">Check who is on this trip</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+          {% for m in all_members %}
+          {% set in_trip = m.id in trip.member_ids if trip.member_ids else true %}
+          <label
+            class="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-400/40 select-none">
+            <span class="flex items-center gap-1.5 truncate">
+              <span>{{ m.avatar }}</span>
+              <span class="font-medium text-white">{{ m.name }}</span>
+            </span>
+            <input type="checkbox" name="member_ids" value="{{ m.id }}"
+              class="h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-500" {{ 'checked' if in_trip else '' }}>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="border-t border-white/5 pt-3">
+        <label for="trip_modal_new_members" class="mb-1 block text-xs font-medium text-slate-300">+ Add new people to
+          this trip</label>
+        <input id="trip_modal_new_members" name="new_members" type="text"
+          placeholder="e.g. Rahul, Sneha (comma separated)"
+          class="h-9 w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 text-xs text-white outline-none focus:border-sky-400/60 placeholder:text-slate-500">
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+        <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('hidden')"
+          class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 hover:bg-white/10">Cancel</button>
+        <button type="submit"
+          class="rounded-xl bg-sky-500 px-5 py-2 text-xs font-semibold text-white hover:bg-sky-400">Save Group
+          Members</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Serialized Trip Data for Dynamic Breakdowns -->
+<script id="tripFullData" type="application/json">{{ {
+  "trip": trip,
+  "events": events,
+  "members": members,
+  "balances": balances,
+  "transactions": transactions
+}|tojson_safe }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Items Drawer Toggle ──
+  document.querySelectorAll('.toggle-items-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const drawer = btn.nextElementSibling;
+      const chevron = btn.querySelector('.chevron');
+      const textSpan = btn.querySelector('.btn-text');
+      const count = btn.dataset.count || '';
+      if (drawer) {
+        const isHidden = drawer.classList.contains('hidden');
+        drawer.classList.toggle('hidden');
+        if (textSpan) {
+          textSpan.textContent = isHidden
+            ? `📋 Hide Items Breakdown (${count})`
+            : `📋 View Items Breakdown (${count})`;
+        }
+        if (chevron) {
+          chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+      }
+    });
+  });
+
+  // ── Edit Event Modal ──
+  function openEditEventModal(eventId, eventName, eventType) {
+    const modal = document.getElementById('editEventModal');
+    const form = document.getElementById('editEventForm');
+    const nameInput = document.getElementById('modal_event_name');
+    const typeSelect = document.getElementById('modal_event_type');
+    if (!modal || !form) return;
+
+    form.action = `/trip/{{ trip.id }}/event/${eventId}/edit`;
+    if (nameInput) nameInput.value = eventName;
+    if (typeSelect) typeSelect.value = eventType;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeEditEventModal() {
+    const modal = document.getElementById('editEventModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  const editModal = document.getElementById('editEventModal');
+  if (editModal) {
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) closeEditEventModal();
+    });
+  }
+
+  // ── Trip-Level & Expense-Level Detailed Breakdown Copy ──
+  const tripData = JSON.parse(document.getElementById('tripFullData')?.textContent || '{}');
+
+  function fmtMoney(n) {
+    const val = parseFloat(n) || 0;
+    return '₹' + val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ── ASCII Thermal Receipt Layout Engine ──
+  const W = 42;
+  const padC = (str) => {
+    const s = String(str).trim();
+    if (s.length >= W) return s.slice(0, W);
+    const left = Math.floor((W - s.length) / 2);
+    return ' '.repeat(left) + s;
+  };
+  const padRow = (left, right) => {
+    const l = String(left).trim();
+    const r = String(right).trim();
+    const maxL = W - r.length - 1;
+    const cleanL = l.length > maxL ? (l.slice(0, maxL - 1) + '…') : l;
+    return cleanL + ' '.repeat(Math.max(1, W - cleanL.length - r.length)) + r;
+  };
+  const divider = (ch = '-') => ch.repeat(W);
+
+  function copyToClipboard(text, btnElement, successLabel = 'Copied ASCII Receipt!') {
+    if (!text) return;
+    const originalText = btnElement.textContent;
+    const doCopy = () => {
+      btnElement.textContent = successLabel;
+      btnElement.classList.add('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+      setTimeout(() => {
+        btnElement.textContent = originalText;
+        btnElement.classList.remove('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+      }, 2200);
+    };
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(doCopy).catch(() => fallbackCopy(text, doCopy));
+    } else {
+      fallbackCopy(text, doCopy);
+    }
+  }
+
+  function fallbackCopy(text, callback) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      ta.style.fontSize = '12pt';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (callback) callback();
+    } catch (err) {
+      console.error('Fallback copy failed', err);
+    }
+  }
+
+  // Generate Traditional ASCII Trip Receipt
+  function generateTripTextBreakdown() {
+    const trip = tripData.trip || {};
+    const events = tripData.events || [];
+    const balances = tripData.balances || [];
+    const transactions = tripData.transactions || [];
+    const members = tripData.members || [];
+
+    const lines = [];
+    lines.push(divider('='));
+    lines.push(padC('TALLYUP'));
+    lines.push(padC('TRIP RECEIPT'));
+    lines.push(padC((trip.name || 'TRIP').toUpperCase()));
+    lines.push(divider('='));
+
+    if (trip.date) {
+      let formattedDate = trip.date;
+      const parts = trip.date.split('-');
+      if (parts.length === 3) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mIdx = parseInt(parts[1], 10) - 1;
+        if (mIdx >= 0 && mIdx < 12) formattedDate = `${parts[2]}-${months[mIdx]}-${parts[0]}`;
+      }
+      lines.push(padRow('DATE:', formattedDate));
+    }
+
+    let totalExpensesSum = 0;
+    let expenseCount = 0;
+    events.forEach(ev => {
+      (ev.expenses || []).forEach(exp => {
+        expenseCount++;
+        totalExpensesSum += parseFloat(exp.display_amount || exp.total_bill || exp.amount || 0);
+      });
+    });
+
+    lines.push(padRow('EVENTS / EXPENSES:', `${events.length} ev / ${expenseCount} exp`));
+    lines.push(divider('-'));
+
+    lines.push('EXPENSE BREAKDOWN:');
+    events.forEach((ev, idx) => {
+      lines.push(padRow(`${idx + 1}. ${ev.name}`, fmtMoney(ev.total)));
+      (ev.expenses || []).forEach(exp => {
+        const amt = fmtMoney(exp.display_amount || exp.total_bill || exp.amount || 0);
+        const payer = exp.paid_by_name || 'Someone';
+        const consumers = (exp.consumer_names || []).join(', ');
+
+        if (exp.is_treat) {
+          lines.push(padRow(`   • ${exp.description}`, amt));
+          lines.push(`     [🎁 TREAT BY ${payer.toUpperCase()} · OWE ₹0.00]`);
+          lines.push(`     Attendees: ${consumers}`);
+        } else {
+          lines.push(padRow(`   • ${exp.description}`, amt));
+          lines.push(`     Paid by: ${payer}`);
+          lines.push(`     Split among: ${consumers}`);
+        }
+
+        if (exp.mode === 'restaurant') {
+          const parts = [];
+          if (exp.discount_percent && exp.discount_percent !== '0') parts.push(`${exp.discount_percent}% off`);
+          if (exp.service_charge && exp.service_charge !== '0') parts.push(`Service ₹${exp.service_charge}`);
+          if (exp.tax_amount && exp.tax_amount !== '0') parts.push(`GST ₹${exp.tax_amount}`);
+          if (parts.length > 0) lines.push(`     (${parts.join(', ')})`);
+        }
+      });
+    });
+
+    lines.push(divider('-'));
+    lines.push(padRow('TOTAL TRIP SPEND:', fmtMoney(totalExpensesSum)));
+    lines.push(divider('='));
+
+    lines.push('FINAL NET BALANCES:');
+    balances.forEach(b => {
+      const bal = parseFloat(b.balance) || 0;
+      if (bal > 0) {
+        lines.push(padRow(`• ${b.name}:`, `Gets back ${fmtMoney(bal)}`));
+      } else if (bal < 0) {
+        const note = b.is_fully_settled ? ' [SETTLED]' : '';
+        lines.push(padRow(`• ${b.name}:`, `Owes ${fmtMoney(Math.abs(bal))}${note}`));
+      } else {
+        lines.push(padRow(`• ${b.name}:`, 'Settled'));
+      }
+    });
+
+    lines.push(divider('-'));
+    lines.push('SETTLEMENT TRANSFERS:');
+    if (transactions.length === 0) {
+      lines.push(padC('All balances are fully settled!'));
+    } else {
+      transactions.forEach(tx => {
+        const amt = fmtMoney(tx.amount);
+        const status = tx.is_settled ? '[PAID]' : '[PENDING]';
+        lines.push(padRow(`-> ${tx.from} owes ${tx.to}:`, `${amt} ${status}`));
+
+        if (!tx.is_settled && tx.to_upi) {
+          const upiClean = tx.to_upi.trim();
+          const amtStr = parseFloat(tx.amount).toFixed(2);
+          const payLink = `upi://pay?pa=${encodeURIComponent(upiClean)}&pn=${encodeURIComponent(tx.to)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(trip.name + ' Settlement')}`;
+          lines.push(`   UPI: ${upiClean}`);
+          lines.push(`   Pay Link: [Pay via UPI](${payLink})`);
+        }
+      });
+    }
+
+    lines.push(divider('='));
+    lines.push(padC('*Auto-generated*'));
+    return lines.join('\n');
+  }
+
+  // Generate Traditional ASCII Single Expense Receipt
+  function generateSingleExpenseBreakdown(expId) {
+    let targetExp = null;
+    (tripData.events || []).forEach(ev => {
+      (ev.expenses || []).forEach(exp => {
+        if (exp.id === expId) targetExp = exp;
+      });
+    });
+    if (!targetExp) return '';
+
+    const lines = [];
+    const desc = (targetExp.description || 'EXPENSE').toUpperCase();
+    lines.push(divider('='));
+    lines.push(padC('TALLYUP'));
+    lines.push(padC('EXPENSE RECEIPT'));
+    lines.push(padC(desc));
+    lines.push(divider('='));
+
+    const totalAmt = parseFloat(targetExp.display_amount || targetExp.total_bill || targetExp.amount || 0);
+    const payerName = targetExp.paid_by_name || 'Someone';
+    const consumers = targetExp.consumer_names || [];
+
+    lines.push(padRow('PAID BY:', payerName));
+    lines.push(padRow('ATTENDEES:', `${consumers.length} people`));
+    lines.push(`Diners: ${consumers.join(', ')}`);
+    lines.push(divider('-'));
+
+    lines.push(padRow('TOTAL AMOUNT:', fmtMoney(totalAmt)));
+
+    if (targetExp.mode === 'restaurant') {
+      if (targetExp.service_charge && targetExp.service_charge !== '0') {
+        lines.push(padRow('↳ Service Charge:', `₹${targetExp.service_charge}`));
+      }
+      if (targetExp.tax_amount && targetExp.tax_amount !== '0') {
+        lines.push(padRow('↳ Taxes & GST:', `₹${targetExp.tax_amount}`));
+      }
+      if (targetExp.discount_percent && targetExp.discount_percent !== '0') {
+        lines.push(padRow('↳ Discount:', `${targetExp.discount_percent}%`));
+      }
+    }
+
+    lines.push(divider('-'));
+
+    if (targetExp.is_treat) {
+      lines.push(padC('🎁 SPECIAL: HOSTED AS A TREAT'));
+      lines.push(padC(`Paid 100% by ${payerName}`));
+      lines.push(padC('Friends & Guests owe: ₹0.00'));
+    } else {
+      const nConsumers = consumers.length || 1;
+      const perPerson = totalAmt / nConsumers;
+      lines.push(padRow('EQUAL SHARE:', `${fmtMoney(perPerson)} / person`));
+      lines.push(divider('-'));
+      lines.push('PAYMENT DUES:');
+      const payerUpi = targetExp.payer_upi || '';
+      consumers.forEach(name => {
+        if (name !== payerName) {
+          lines.push(padRow(`- ${name} owes ${payerName}:`, fmtMoney(perPerson)));
+          if (payerUpi) {
+            const cleanUpi = payerUpi.trim();
+            const amtStr = perPerson.toFixed(2);
+            const payLink = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(payerName)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(targetExp.description)}`;
+            lines.push(`  Pay Link: [Pay via UPI](${payLink})`);
+          }
+        }
+      });
+      if (payerUpi) {
+        lines.push(padRow('PAYER UPI:', payerUpi.trim()));
+      }
+    }
+
+    lines.push(divider('='));
+    lines.push(padC('*Auto-generated*'));
+    return lines.join('\n');
+  }
+
+  // Hook up Copy Trip Breakdown Button
+  const copyTripBtn = document.getElementById('copyTripBreakdownBtn');
+  if (copyTripBtn) {
+    copyTripBtn.addEventListener('click', () => {
+      const text = generateTripTextBreakdown();
+      copyToClipboard(text, copyTripBtn, 'Copied ASCII Receipt!');
+    });
+  }
+
+  const copySettlementCardBtn = document.getElementById('copySettlementCardBtn');
+  if (copySettlementCardBtn) {
+    copySettlementCardBtn.addEventListener('click', () => {
+      const text = generateTripTextBreakdown();
+      copyToClipboard(text, copySettlementCardBtn, 'Copied ASCII Receipt!');
+    });
+  }
+
+  // Hook up Copy Expense Buttons on cards
+  document.querySelectorAll('.copy-exp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const expId = btn.dataset.expenseId;
+      const text = generateSingleExpenseBreakdown(expId);
+      copyToClipboard(text, btn, 'Copied ASCII Receipt!');
+    });
+  });
+
+  // =========================================================================
+  // EVENT SCANNER CONTROLLER (Drag-and-Drop Receipt to Auto-Create Event)
+  // =========================================================================
+  const eventReceiptDropzone = document.getElementById('eventReceiptDropzone');
+  const eventReceiptFileInput = document.getElementById('eventReceiptFileInput');
+  const eventScanLoading = document.getElementById('eventScanLoading');
+  const eventScanPreview = document.getElementById('eventScanPreview');
+  const eventScanBadge = document.getElementById('eventScanBadge');
+  const eventScanAmount = document.getElementById('eventScanAmount');
+  const eventScanNameInput = document.getElementById('eventScanNameInput');
+  const eventScanTypeSelect = document.getElementById('eventScanTypeSelect');
+  const createEventAndSplitBtn = document.getElementById('createEventAndSplitBtn');
+  const applyToEventFormBtn = document.getElementById('applyToEventFormBtn');
+  const cancelEventScanBtn = document.getElementById('cancelEventScanBtn');
+
+  let lastEventScannedData = null;
+
+  async function processEventReceiptFile(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      alert('Please select or drop an image file (JPG, PNG, WEBP).');
+      return;
+    }
+
+    if (eventScanLoading) {
+      eventScanLoading.classList.remove('hidden');
+      eventScanLoading.classList.add('flex');
+    }
+    if (eventScanPreview) eventScanPreview.classList.add('hidden');
+
+    const formData = new FormData();
+    formData.append('receipt', file);
+
+    try {
+      const response = await fetch('/api/scan_receipt', {
+        method: 'POST',
+        body: formData,
+      });
+      const res = await response.json();
+      if (!res.success || !res.data) {
+        throw new Error(res.error || 'Could not parse receipt.');
+      }
+
+      lastEventScannedData = res.data;
+      displayScannedEventPreview(res.data);
+    } catch (err) {
+      alert(err.message || 'Failed to scan receipt image.');
+    } finally {
+      if (eventScanLoading) {
+        eventScanLoading.classList.add('hidden');
+        eventScanLoading.classList.remove('flex');
+      }
+    }
+  }
+
+  if (eventReceiptDropzone && eventReceiptFileInput) {
+    eventReceiptDropzone.addEventListener('click', () => {
+      eventReceiptFileInput.click();
+    });
+
+    eventReceiptFileInput.addEventListener('change', () => {
+      if (!eventReceiptFileInput.files.length) return;
+      processEventReceiptFile(eventReceiptFileInput.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      eventReceiptDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        eventReceiptDropzone.classList.add('border-indigo-400', 'bg-indigo-500/15', 'scale-[1.01]');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      eventReceiptDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        eventReceiptDropzone.classList.remove('border-indigo-400', 'bg-indigo-500/15', 'scale-[1.01]');
+      });
+    });
+
+    eventReceiptDropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length > 0) {
+        processEventReceiptFile(dt.files[0]);
+      }
+    });
+
+    // Paste screenshot support
+    window.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.startsWith('image/')) {
+          const blob = items[i].getAsFile();
+          if (blob) processEventReceiptFile(blob);
+          break;
+        }
+      }
+    });
+  }
+
+  function displayScannedEventPreview(data) {
+    if (!eventScanPreview) return;
+
+    // Detect type
+    let inferredType = 'other';
+    const cat = data.category || 'dining';
+    if (cat === 'dining') {
+      const titleLower = (data.suggested_title || '').toLowerCase();
+      if (titleLower.includes('breakfast')) inferredType = 'breakfast';
+      else if (titleLower.includes('lunch')) inferredType = 'lunch';
+      else if (titleLower.includes('dinner')) inferredType = 'dinner';
+      else inferredType = 'lunch';
+    } else if (cat === 'fuel' || cat === 'transport') {
+      inferredType = 'transport';
+    } else if (cat === 'grocery' || cat === 'retail') {
+      inferredType = 'shopping';
+    } else if (cat === 'hotel') {
+      inferredType = 'resort';
+    }
+
+    if (eventScanBadge) {
+      eventScanBadge.textContent = (data.suggested_title || data.merchant_name || 'Receipt') + (data.time ? ' (' + data.time + ')' : '');
+    }
+    if (eventScanAmount) {
+      eventScanAmount.textContent = fmtMoney(data.total_bill || 0) + (data.items && data.items.length ? ' (' + data.items.length + ' items)' : '');
+    }
+    if (eventScanNameInput) {
+      eventScanNameInput.value = data.suggested_title || data.merchant_name || 'Event';
+    }
+    if (eventScanTypeSelect) {
+      eventScanTypeSelect.value = inferredType;
+    }
+
+    eventScanPreview.classList.remove('hidden');
+  }
+
+  const autoSaveEventExpenseBtn = document.getElementById('autoSaveEventExpenseBtn');
+
+  if (cancelEventScanBtn) {
+    cancelEventScanBtn.addEventListener('click', () => {
+      if (eventScanPreview) eventScanPreview.classList.add('hidden');
+      if (eventReceiptFileInput) eventReceiptFileInput.value = '';
+    });
+  }
+
+  // 1. One-click Auto-Save Event and Expense Directly
+  if (autoSaveEventExpenseBtn) {
+    autoSaveEventExpenseBtn.addEventListener('click', async () => {
+      if (!lastEventScannedData) return;
+      const eventName = eventScanNameInput?.value.trim() || 'Scanned Event';
+      const eventType = eventScanTypeSelect?.value || 'other';
+
+      autoSaveEventExpenseBtn.disabled = true;
+      autoSaveEventExpenseBtn.textContent = 'Saving Event & Expenses...';
+
+      try {
+        const resp = await fetch('/trip/{{ trip.id }}/event/new', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            event_name: eventName,
+            event_type: eventType,
+            save_expense_directly: true,
+            receipt_data: lastEventScannedData,
+          }),
+        });
+        const res = await resp.json();
+        if (!res.success || !res.event) {
+          throw new Error(res.error || 'Could not auto-save event.');
+        }
+
+        window.location.reload();
+      } catch (e) {
+        alert(e.message || 'Failed to auto-save event.');
+        autoSaveEventExpenseBtn.disabled = false;
+        autoSaveEventExpenseBtn.textContent = '⚡ Save Event & Expenses Directly';
+      }
+    });
+  }
+
+  // 2. Open Pre-filled Bill Form to Review & Edit Split
+  if (createEventAndSplitBtn) {
+    createEventAndSplitBtn.addEventListener('click', async () => {
+      if (!lastEventScannedData) return;
+      const eventName = eventScanNameInput?.value.trim() || 'Scanned Event';
+      const eventType = eventScanTypeSelect?.value || 'other';
+
+      createEventAndSplitBtn.disabled = true;
+      createEventAndSplitBtn.textContent = 'Creating Event...';
+
+      try {
+        const resp = await fetch('/trip/{{ trip.id }}/event/new', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            event_name: eventName,
+            event_type: eventType,
+          }),
+        });
+        const res = await resp.json();
+        if (!res.success || !res.event) {
+          throw new Error(res.error || 'Could not create event.');
+        }
+
+        // Store pending scan in BOTH sessionStorage and localStorage with matched event_id
+        const scanPayload = JSON.stringify({
+          ...lastEventScannedData,
+          event_id: res.event.id,
+        });
+        sessionStorage.setItem('tallyup_pending_scan', scanPayload);
+        localStorage.setItem('tallyup_pending_scan', scanPayload);
+
+        const mode = (lastEventScannedData.category === 'dining' || (lastEventScannedData.items && lastEventScannedData.items.length > 1))
+          ? 'restaurant'
+          : 'simple';
+
+        window.location.href = '/trip/{{ trip.id }}/add?mode=' + encodeURIComponent(mode) + '&event_id=' + encodeURIComponent(res.event.id);
+      } catch (e) {
+        alert(e.message || 'Failed to auto-create event.');
+        createEventAndSplitBtn.disabled = false;
+        createEventAndSplitBtn.textContent = '✏️ Open Bill & Edit Split →';
+      }
+    });
+  }
+</script>
+{% endblock %}
