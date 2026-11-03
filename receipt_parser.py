@@ -119,7 +119,7 @@ def parse_receipt_image(image_path_or_bytes):
     computed_sum = round(subtotal + service_charge + total_tax + round_off, 2)
     has_match = (grand_total > 0 and abs(computed_sum - grand_total) <= 0.5)
 
-    return {
+    raw_result = {
         "success": True,
         "category": category,
         "merchant_name": merchant_name,
@@ -142,6 +142,19 @@ def parse_receipt_image(image_path_or_bytes):
         "has_checksum_match": has_match,
         "raw_lines_count": len(lines),
         "raw_lines": lines,
+    }
+
+    # Execute Strict 6-Phase Reconciliation Engine
+    from receipt_reconciler import reconcile_receipt
+    reconciliation = reconcile_receipt(raw_result)
+    repaired = reconciliation["repaired_payload"]
+
+    return {
+        "success": True,
+        **repaired,
+        "is_valid": reconciliation["is_valid"],
+        "confidence_score": reconciliation["confidence_score"],
+        "reconciliation_notes": reconciliation["reconciliation_notes"],
     }
 
 
@@ -543,10 +556,51 @@ def extract_items(boxes, lines, grand_total, subtotal):
         # Clean title casing
         name = re.sub(r'\s+', ' ', name).title()
 
+        # Extract quantities and dual prices on the same line if present
+        row_boxes = [b for b in item_boxes if top_bound <= b["yc"] < bottom_bound]
+        detected_prices = []
+        for b in row_boxes:
+            for m in re.findall(r'(\d+(?:\.\d{2}))', b["text"]):
+                val = float(m)
+                if val > 0 and val != 2026.0:
+                    detected_prices.append(val)
+
+        detected_prices = sorted(list(set(detected_prices)))
+        line_total = pr["price"]
+        unit_price = pr["price"]
+        qty = 1
+
+        if len(detected_prices) >= 2:
+            unit_price = detected_prices[0]
+            line_total = detected_prices[-1]
+            if unit_price > 0 and line_total > unit_price:
+                ratio = line_total / unit_price
+                if abs(ratio - round(ratio)) <= 0.05:
+                    qty = int(round(ratio))
+
+        # Check for standalone quantity box or text like '2x', '3'
+        if qty == 1:
+            for b in row_boxes:
+                t = b["text"].strip()
+                m_q = re.search(r'(?i)\b([1-9]\d?)\s*(?:x|nos?|pcs?)\b', t)
+                if m_q:
+                    q_val = int(m_q.group(1))
+                    if 1 < q_val < 100:
+                        qty = q_val
+                        break
+                elif t.isdigit() and 1 < int(t) < 50:
+                    # Check if dividing line_total by this digit produces a sensible clean price
+                    q_val = int(t)
+                    if line_total > 0 and (line_total / q_val) >= 10.0:
+                        qty = q_val
+                        unit_price = round(line_total / qty, 2)
+                        break
+
         items.append({
             "name": name,
-            "price": pr["price"],
-            "qty": 1
+            "qty": qty,
+            "price": unit_price,
+            "total": line_total,
         })
 
     return items

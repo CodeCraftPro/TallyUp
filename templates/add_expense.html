@@ -739,8 +739,23 @@
             </div>
           </div>
 
-          <div id="previewChecksumBadge" class="badge badge-green" style="font-size: 10.5px; padding: 6px 10px;">
-            ✓ Math Verified: Items, taxes & charges balance paper bill
+          <!-- Reconciliation Engine Verification Banner -->
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+              <span id="previewChecksumBadge" class="badge badge-green" style="font-size: 10px; padding: 4px 8px;">
+                [✓ RECONCILED]
+              </span>
+              <span id="previewConfidenceBadge" class="badge badge-dim" style="font-size: 10px;">
+                CONFIDENCE: 100%
+              </span>
+            </div>
+            
+            <details id="previewReconciliationDetails" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 10px;">
+              <summary style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #888; text-transform: uppercase;">
+                RECONCILIATION AUDIT LOG (6 PHASES) ▼
+              </summary>
+              <div id="previewReconciliationNotes" style="font-size: 10px; color: #aaa; margin-top: 6px; display: flex; flex-direction: column; gap: 3px;" class="receipt-font"></div>
+            </details>
           </div>
 
           <div id="previewPayerBadge" style="display: none; align-items: center; gap: 6px; font-size: 11px; color: #888;">
@@ -1658,6 +1673,7 @@
             <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
             <input type="number" min="0" step="0.01" placeholder="0.00" value="${price || ''}" class="item-price" style="padding-left: 26px; height: 38px; font-weight: 700;">
           </div>
+          <button type="button" class="split-dish-btn btn btn-dim btn-sm" style="padding: 0 8px; height: 38px; font-size: 11px;" title="Split this dish into multiple equal portions">[➗ SPLIT]</button>
           <button type="button" class="remove-item btn btn-danger btn-sm" style="padding: 0 10px; height: 38px;" title="Remove dish">✕</button>
         </div>
 
@@ -1723,6 +1739,35 @@
 
       if (outsideBox) {
         outsideBox.addEventListener('change', updateItemsData);
+      }
+
+      const splitBtn = div.querySelector('.split-dish-btn');
+      if (splitBtn) {
+        splitBtn.addEventListener('click', () => {
+          const curName = div.querySelector('.item-name')?.value.trim() || 'Dish';
+          const curPrice = parseFloat(div.querySelector('.item-price')?.value) || 0;
+          if (curPrice <= 0) {
+            alert('Please enter a price before splitting.');
+            return;
+          }
+          const countStr = prompt(`Split "${curName}" (₹${curPrice.toFixed(2)}) into how many portions?`, '2');
+          if (!countStr) return;
+          const count = parseInt(countStr);
+          if (isNaN(count) || count < 2 || count > 20) {
+            alert('Please enter a valid number of portions between 2 and 20.');
+            return;
+          }
+          const portionPrice = (curPrice / count).toFixed(2);
+          const curConsumers = Array.from(div.querySelectorAll('.item-consumer:checked')).map(cb => cb.value);
+          const curPaidBy = div.querySelector('.item-paid-by')?.value || '';
+          const curOutside = div.querySelector('.item-is-outside')?.checked || false;
+
+          div.remove();
+          for (let p = 1; p <= count; p++) {
+            addItemWithData(`${curName} (${p}/${count})`, portionPrice, curConsumers, curPaidBy, curOutside);
+          }
+          updateItemsData();
+        });
       }
 
       div.querySelector('.remove-item').addEventListener('click', () => {
@@ -2402,10 +2447,23 @@
       scEl.textContent = fmt(data.service_charge || 0);
     }
 
-    // Checksum badge
+    // Checksum & Reconciliation Badges
     const chkBadge = document.getElementById('previewChecksumBadge');
+    const confBadge = document.getElementById('previewConfidenceBadge');
+    const notesEl = document.getElementById('previewReconciliationNotes');
+
+    const isValid = data.is_valid !== false;
+    const confScore = Math.round((data.confidence_score !== undefined ? data.confidence_score : 1.0) * 100);
+
     if (chkBadge) {
-      chkBadge.classList.toggle('hidden', !data.has_checksum_match);
+      chkBadge.textContent = isValid ? '[✓ RECONCILED]' : '[⚠ ADJUSTED]';
+      chkBadge.className = `badge ${isValid ? 'badge-green' : 'badge-amber'}`;
+    }
+    if (confBadge) {
+      confBadge.textContent = `CONFIDENCE: ${confScore}%`;
+    }
+    if (notesEl && data.reconciliation_notes) {
+      notesEl.innerHTML = data.reconciliation_notes.map(n => `<div style="padding: 1px 0;">• ${escapeHtml(n)}</div>`).join('');
     }
 
     // Payer guess
@@ -2437,8 +2495,11 @@
         if (itemsContainer) itemsContainer.classList.remove('hidden');
         itemsListEl.innerHTML = items.map((it, idx) => `
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #0a0a0a; border: 1px solid #2a2a2a;">
-            <span style="font-size: 12.5px; color: #fff;">${idx + 1}. ${escapeHtml(it.name)}</span>
-            <span class="receipt-font" style="font-size: 13px; font-weight: 700; color: #0A8F20;">${fmt(it.price)}</span>
+            <div>
+              <span style="font-size: 12px; color: #fff;">${idx + 1}. ${escapeHtml(it.name)}</span>
+              ${it.qty > 1 ? `<span class="badge badge-dim" style="font-size: 9px; margin-left: 6px;">QTY: ${it.qty} (₹${fmt(it.price)} ea)</span>` : ''}
+            </div>
+            <span class="receipt-font" style="font-size: 12.5px; font-weight: 700; color: #0A8F20;">${fmt(it.total || it.price)}</span>
           </div>
         `).join('');
       }
@@ -2537,14 +2598,20 @@
         }
       }
 
-      // 7. Line items (dishes)
+      // 7. Line items (dishes with portion expansion for multi-quantity)
       if (data.items && data.items.length > 0) {
         const itemsList = document.getElementById('itemsList');
         if (itemsList) itemsList.innerHTML = '';
         itemCounter = 0;
         data.items.forEach(it => {
-          // isOutside = false (dishes from paper bill)
-          addItemWithData(it.name || 'Item', it.price || 0, null, '', false);
+          // If multi-portion dish (e.g. 2 Mutton Biryani), auto-expand into portions!
+          if (it.portions && it.portions.length > 1) {
+            it.portions.forEach(p => {
+              addItemWithData(p.name, p.price, null, '', false);
+            });
+          } else {
+            addItemWithData(it.name || 'Item', it.price || it.total || 0, null, '', false);
+          }
         });
       }
 
