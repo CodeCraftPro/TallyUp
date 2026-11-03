@@ -1,267 +1,232 @@
 {% extends "base.html" %}
 {% block title %}TallyUp — Settlement{% endblock %}
 
-{% block body_bg %}bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_32%),linear-gradient(180deg,#020617_0%,#0f172a_100%)]{% endblock %}
-
 {% block content %}
-<header class="mb-6 slide-up">
-  <div class="flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-white/5 p-5 backdrop-blur-xl sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-    <div>
-      <p class="text-sm font-medium text-emerald-300">{{ 'Trip Settlement' if scope == 'trip' else 'Global Settlement' }}</p>
-      <h1 class="mt-1 text-3xl font-semibold tracking-tight text-white">
-        {% if scope == 'trip' %}
-          Settle "{{ trip.name }}"
-        {% else %}
-          Settle up — all trips
-        {% endif %}
-      </h1>
-      <p class="mt-2 text-sm text-slate-400">Positive balances get paid back, negative balances owe. Minimum transactions for maximum peace.</p>
+<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px;">
+  
+  <!-- Subheader -->
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em;">
+        SETTLEMENT // {{ (trip.name if scope == 'trip' else 'ALL TRIPS')|upper }}
+      </span>
+      <span class="badge badge-green">{{ 'TRIP SCOPE' if scope == 'trip' else 'GLOBAL' }}</span>
     </div>
-    <div class="flex flex-wrap gap-2">
+    <div style="display: flex; align-items: center; gap: 6px;">
       {% if scope == 'trip' %}
-        <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:border-emerald-400/40 hover:bg-emerald-400/10">← Back to trip</a>
+        <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="btn btn-dim btn-sm">← BACK TO TRIP</a>
       {% endif %}
-      <button type="button" id="copySettlementSummaryBtn" class="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20 active:scale-95">
-        Copy Settlement
+      <button type="button" id="copySettlementSummaryBtn" class="btn btn-sm">
+        [COPY SETTLEMENT]
       </button>
-      <a href="{{ url_for('dashboard') }}" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:border-sky-400/40 hover:bg-sky-400/10">Dashboard</a>
-      <form method="post" action="{{ url_for('reset') }}">
-        <button type="submit" class="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-200">Start Over</button>
-      </form>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-dim btn-sm">DASHBOARD</a>
     </div>
   </div>
-</header>
 
-<section class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-  <div class="space-y-6">
-    <!-- Net Balances -->
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
-      <div class="mb-5 flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-white">Net Balances</h2>
-          <p class="mt-1 text-sm text-slate-400">Each person's final position after all expenses are tallied.</p>
+  <!-- 2-Panel Layout -->
+  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 12px; overflow: hidden;" class="lg:grid-cols-[1.1fr_0.9fr]">
+    
+    <!-- Left Column: Balances & Simplified Transactions -->
+    <div class="panel-scroll" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px;">
+      
+      <!-- Net Balances Grid -->
+      <div class="card" style="padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">NET BALANCES</span>
+          <span style="font-size: 10px; color: #555;">FINAL POSITION</span>
         </div>
-        <div class="rounded-xl bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-400">Final</div>
-      </div>
 
-      <div class="grid gap-4 md:grid-cols-2">
-        {% for row in balances %}
-          {% set is_positive = row.balance > 0 %}
-          {% set is_negative = row.balance < 0 %}
-          <article class="rounded-[1.5rem] border border-white/10 bg-white/5 p-5 transition hover:border-white/20 hover:bg-white/[0.07]">
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950/70 text-xl">{{ row.avatar }}</div>
-                <div>
-                  <h3 class="text-lg font-semibold text-white">{{ row.name }}</h3>
-                  <p class="text-sm text-slate-400">Final status</p>
-                </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">
+          {% for row in balances %}
+            {% set is_positive = row.balance > 0 %}
+            {% set is_negative = row.balance < 0 %}
+            <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-size: 12px; color: #d4d4d4; font-weight: 500;">{{ row.avatar }} {{ row.name }}</span>
+                <span class="badge {{ 'badge-green' if is_positive else ('badge-amber' if is_negative else 'badge-dim') }}" style="font-size: 9px;">
+                  {{ 'GETS' if is_positive else ('OWES' if is_negative else 'SETTLED') }}
+                </span>
               </div>
-              <div class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] {{ 'bg-emerald-400/10 text-emerald-200' if is_positive else ('bg-rose-400/10 text-rose-200' if is_negative else 'bg-slate-400/10 text-slate-300') }}">
-                {{ 'Credit' if is_positive else ('Debit' if is_negative else 'Done') }}
-              </div>
-            </div>
-            <div class="mt-5">
-              {% if is_positive %}
-                <p class="text-2xl font-semibold text-emerald-300">Gets back {{ row.balance|currency }}</p>
-              {% elif is_negative %}
-                <p class="text-2xl font-semibold text-rose-300">Owes {{ (-row.balance)|currency }}</p>
-              {% else %}
-                <p class="text-2xl font-semibold text-slate-300">Settled</p>
-              {% endif %}
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Simplified Transactions -->
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
-      <div class="mb-5">
-        <h2 class="text-xl font-semibold text-white">Simplified Transactions</h2>
-        <p class="mt-1 text-sm text-slate-400">Minimum transfers to settle all debts.</p>
-      </div>
-
-      {% if transactions %}
-        <div class="space-y-3">
-          {% for tx in transactions %}
-            {% if tx.is_settled %}
-            <div class="flex flex-col gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 sm:flex-row sm:items-center sm:justify-between transition">
-              <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/20 text-sm font-bold text-emerald-300">✓</div>
-                <div>
-                  <p class="text-sm text-slate-200">
-                    <span class="line-through text-slate-400 font-semibold">{{ tx.from }}</span>
-                    <span class="mx-2 text-slate-500">→</span>
-                    <span class="font-semibold text-slate-300">{{ tx.to }}</span>
-                  </p>
-                  <div class="flex items-center gap-1.5 mt-0.5">
-                    <span class="text-xs font-semibold text-emerald-400">Settled (Paid)</span>
-                    {% if tx.settled_at %}<span class="text-[10px] text-slate-500">· {{ tx.settled_at }}</span>{% endif %}
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="line-through text-xs text-slate-500">{{ tx.amount|currency }}</span>
-                {% if scope == 'trip' %}
-                <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" class="inline">
-                  <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-                  <input type="hidden" name="from_name" value="{{ tx.from }}">
-                  <input type="hidden" name="to_name" value="{{ tx.to }}">
-                  <button type="submit" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-400 hover:text-white transition">Undo</button>
-                </form>
-                {% endif %}
-              </div>
-            </div>
-            {% else %}
-            <div class="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between transition">
-              <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-400/10 text-sm font-bold text-rose-300">PAY</div>
-                <div>
-                  <p class="text-sm text-slate-200">
-                    <span class="font-semibold text-rose-200">{{ tx.from }}</span>
-                    <span class="mx-2 text-slate-500">→</span>
-                    <span class="font-semibold text-emerald-200">{{ tx.to }}</span>
-                  </p>
-                  <span class="text-xs text-amber-400/90 font-medium">Pending payment</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="inline-flex items-center justify-center rounded-full bg-emerald-400/10 px-3.5 py-1.5 text-sm font-semibold text-emerald-200">{{ tx.amount|currency }}</span>
-                {% if tx.to_upi %}
-                <a href="{{ url_for('pay', pa=tx.to_upi, pn=tx.to, am=tx.amount, tn=(trip.name if trip else 'Settlement')) }}" class="rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 transition shadow-sm inline-flex items-center gap-1">
-                  Pay via UPI
-                </a>
-                {% endif %}
-                {% if scope == 'trip' %}
-                <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" class="inline">
-                  <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-                  <input type="hidden" name="from_name" value="{{ tx.from }}">
-                  <input type="hidden" name="to_name" value="{{ tx.to }}">
-                  <input type="hidden" name="amount" value="{{ tx.amount }}">
-                  <button type="submit" class="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/30 active:scale-95 shadow-sm">
-                    Settled
-                  </button>
-                </form>
+              <div class="receipt-font" style="font-size: 14px; font-weight: 700;">
+                {% if is_positive %}
+                  <span style="color: #0A8F20;">+{{ row.balance|currency }}</span>
+                {% elif is_negative %}
+                  <span style="color: #d97706;">-{{ (-row.balance)|currency }}</span>
                 {% else %}
-                <form method="post" action="{{ url_for('toggle_global_settlement') }}" class="inline">
-                  <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-                  <input type="hidden" name="trip_id" value="{{ tx.trip_id if tx.trip_id else '' }}">
-                  <input type="hidden" name="from_name" value="{{ tx.from }}">
-                  <input type="hidden" name="to_name" value="{{ tx.to }}">
-                  <input type="hidden" name="amount" value="{{ tx.amount }}">
-                  <input type="hidden" name="action" value="mark_settled">
-                  <button type="submit" class="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/30 active:scale-95 shadow-sm">
-                    Settled
-                  </button>
-                </form>
+                  <span style="color: #555;">₹0.00</span>
                 {% endif %}
               </div>
             </div>
-            {% endif %}
           {% endfor %}
         </div>
-      {% else %}
-        <div class="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-10 text-center">
-          <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-2xl">✓</div>
-          <h3 class="text-lg font-semibold text-white">Everyone is settled</h3>
-          <p class="mt-2 text-sm text-slate-400">All trip balances and dues are fully cleared.</p>
-        </div>
-      {% endif %}
-    </div>
-
-    {% if scope == 'global' and completed_settlements %}
-    <!-- Completed Settlements across all trips -->
-    <div class="rounded-[2rem] border border-emerald-500/20 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
-      <div class="mb-4 flex items-center justify-between">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="flex h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
-            <h2 class="text-lg font-semibold text-white">Completed Settlements</h2>
-          </div>
-          <p class="mt-1 text-xs text-slate-400">Payments recorded and cleared across past trips.</p>
-        </div>
-        <span class="rounded-lg bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">{{ completed_settlements|length }} cleared</span>
       </div>
 
-      <div class="space-y-2.5">
-        {% for cs in completed_settlements %}
-        <div class="flex flex-col gap-2 rounded-2xl border border-white/5 bg-white/[0.03] p-3.5 sm:flex-row sm:items-center sm:justify-between transition hover:border-emerald-500/30">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/15 text-sm font-bold text-emerald-300 flex-shrink-0">✓</div>
-            <div class="min-w-0">
-              <p class="text-xs text-slate-200 truncate">
-                <span class="font-semibold text-slate-300">{{ cs.from_name }}</span>
-                <span class="mx-1.5 text-slate-500">→</span>
-                <span class="font-semibold text-slate-300">{{ cs.to_name }}</span>
-              </p>
-              <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
-                <span class="text-emerald-400 font-medium">Settled (Paid)</span>
-                {% if cs.trip_name %}<span>· in {{ cs.trip_name }}</span>{% endif %}
-                {% if cs.settled_at %}<span class="text-slate-500">· {{ cs.settled_at }}</span>{% endif %}
+      <!-- Simplified Transactions -->
+      <div class="card" style="padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">SIMPLIFIED TRANSFERS</span>
+          <span style="font-size: 10px; color: #555;">MINIMAL TRANSACTIONS</span>
+        </div>
+
+        {% if transactions %}
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            {% for tx in transactions %}
+              {% if tx.is_settled %}
+              <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px; opacity: 0.6;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #0A8F20; font-weight: 700; font-size: 12px;">✓</span>
+                  <div style="font-size: 12px;">
+                    <span style="text-decoration: line-through; color: #666;">{{ tx.from }}</span>
+                    <span style="color: #444;"> → </span>
+                    <span style="text-decoration: line-through; color: #666;">{{ tx.to }}</span>
+                    <span style="color: #0A8F20; font-size: 10px; margin-left: 6px;">[SETTLED]</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="receipt-font" style="text-decoration: line-through; font-size: 11px; color: #666;">{{ tx.amount|currency }}</span>
+                  {% if scope == 'trip' %}
+                  <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+                    <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+                    <input type="hidden" name="from_name" value="{{ tx.from }}">
+                    <input type="hidden" name="to_name" value="{{ tx.to }}">
+                    <button type="submit" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 2px 6px;">UNDO</button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% else %}
+              <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="badge badge-amber" style="font-size: 9px;">PAY</span>
+                  <div style="font-size: 12px; font-weight: 500;">
+                    <span style="color: #d97706;">{{ tx.from }}</span>
+                    <span style="color: #555;"> → </span>
+                    <span style="color: #0A8F20;">{{ tx.to }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span class="receipt-font" style="font-size: 12px; font-weight: 700; color: #fff; margin-right: 4px;">{{ tx.amount|currency }}</span>
+                  {% if tx.to_upi %}
+                  <a href="{{ url_for('pay', pa=tx.to_upi, pn=tx.to, am=tx.amount, tn=(trip.name if trip else 'Settlement')) }}" class="btn btn-solid btn-sm" style="font-size: 9px; padding: 3px 8px;">
+                    UPI PAY →
+                  </a>
+                  {% endif %}
+                  {% if scope == 'trip' %}
+                  <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+                    <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+                    <input type="hidden" name="from_name" value="{{ tx.from }}">
+                    <input type="hidden" name="to_name" value="{{ tx.to }}">
+                    <input type="hidden" name="amount" value="{{ tx.amount }}">
+                    <button type="submit" class="btn btn-sm" style="font-size: 9px; padding: 3px 8px;">
+                      [✓ SETTLED]
+                    </button>
+                  </form>
+                  {% else %}
+                  <form method="post" action="{{ url_for('toggle_global_settlement') }}" style="display: inline;">
+                    <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+                    <input type="hidden" name="trip_id" value="{{ tx.trip_id if tx.trip_id else '' }}">
+                    <input type="hidden" name="from_name" value="{{ tx.from }}">
+                    <input type="hidden" name="to_name" value="{{ tx.to }}">
+                    <input type="hidden" name="amount" value="{{ tx.amount }}">
+                    <input type="hidden" name="action" value="mark_settled">
+                    <button type="submit" class="btn btn-sm" style="font-size: 9px; padding: 3px 8px;">
+                      [✓ SETTLED]
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 24px 10px; background: #0a0a0a; border: 1px dashed #2a2a2a;">
+            <p style="font-size: 12px; color: #0A8F20; margin: 0; font-weight: 600;">✓ EVERYONE IS FULLY SETTLED</p>
+            <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">Zero pending dues across all records.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if scope == 'global' and completed_settlements %}
+      <!-- Completed Settlements -->
+      <div class="card" style="padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">CLEARED HISTORY</span>
+          <span class="badge badge-dim">{{ completed_settlements|length }} CLEARED</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          {% for cs in completed_settlements %}
+          <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 10px; font-size: 11px;">
+            <div>
+              <span style="color: #888;">{{ cs.from_name }} → {{ cs.to_name }}</span>
+              {% if cs.trip_name %}<span style="color: #555;"> ({{ cs.trip_name }})</span>{% endif %}
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="receipt-font" style="color: #666;">{{ cs.amount|currency }}</span>
+              <form method="post" action="{{ url_for('toggle_global_settlement') }}" style="display: inline;">
+                <input type="hidden" name="transfer_key" value="{{ cs.key }}">
+                <input type="hidden" name="trip_id" value="{{ cs.trip_id }}">
+                <input type="hidden" name="from_name" value="{{ cs.from_name }}">
+                <input type="hidden" name="to_name" value="{{ cs.to_name }}">
+                <button type="submit" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 1px 6px;">UNDO</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Right Column: Net Graph & Rules -->
+    <div style="display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+      
+      <!-- Net Graph Card -->
+      <div class="card" style="padding: 12px; flex-shrink: 0;">
+        <div style="border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 10px;">
+          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">NET GRAPH</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          {% for row in balances %}
+            {% set abs_value = row.balance if row.balance >= 0 else -row.balance %}
+            {% set width = 0 if max_abs == 0 else ((abs_value / max_abs) * 100) %}
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                <span>{{ row.avatar }} {{ row.name }}</span>
+                <span class="receipt-font" style="font-weight: 600; color: {{ '#0A8F20' if row.balance > 0 else ('#d97706' if row.balance < 0 else '#666') }};">
+                  {{ row.balance|currency if row.balance >= 0 else '-' ~ ((-row.balance)|currency) }}
+                </span>
+              </div>
+              <div style="height: 6px; background: #0a0a0a; border: 1px solid #2a2a2a;">
+                <div style="height: 100%; width: {{ width }}%; background: {{ '#0A8F20' if row.balance > 0 else ('#d97706' if row.balance < 0 else '#333') }};"></div>
               </div>
             </div>
-          </div>
-          <div class="flex items-center gap-2.5 justify-end">
-            <span class="text-xs font-semibold text-slate-300">{{ cs.amount|currency }}</span>
-            <form method="post" action="{{ url_for('toggle_global_settlement') }}" class="inline">
-              <input type="hidden" name="transfer_key" value="{{ cs.key }}">
-              <input type="hidden" name="trip_id" value="{{ cs.trip_id }}">
-              <input type="hidden" name="from_name" value="{{ cs.from_name }}">
-              <input type="hidden" name="to_name" value="{{ cs.to_name }}">
-              <button type="submit" class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-400 hover:text-white hover:border-white/30 transition">
-                Undo
-              </button>
-            </form>
-          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
       </div>
+
+      <!-- Calculation Heuristics Card -->
+      <div class="card panel-scroll" style="padding: 12px; flex: 1; overflow-y: auto;">
+        <div style="border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">CALCULATION SPEC</span>
+        </div>
+
+        <div style="font-size: 11px; color: #888; line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
+          <p><strong style="color: #fff;">SIMPLE SPLIT:</strong> Net amount is distributed evenly across all chosen consumers.</p>
+          <p><strong style="color: #fff;">RESTAURANT SPLIT:</strong> Discounts and service charges distribute proportionally. Taxes (GST) match individual dish consumption.</p>
+          <p><strong style="color: #fff;">COINS & CASHBACK:</strong> Deducted directly from table payer's total liability.</p>
+          <p><strong style="color: #fff;">MINIMAL PATH SOLVER:</strong> Balances are reduced to fewest peer transfers via greedy net-flow reduction.</p>
+        </div>
+      </div>
+
     </div>
-    {% endif %}
-    </div>
+
   </div>
+</div>
 
-  <aside class="space-y-6">
-    <!-- Net Graph -->
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
-      <div class="mb-4">
-        <h2 class="text-xl font-semibold text-white">Net Graph</h2>
-        <p class="mt-1 text-sm text-slate-400">Visual snapshot of who's up and who's down.</p>
-      </div>
-      <div class="space-y-4">
-        {% for row in balances %}
-          {% set abs_value = row.balance if row.balance >= 0 else -row.balance %}
-          {% set width = 0 if max_abs == 0 else ((abs_value / max_abs) * 100) %}
-          <div>
-            <div class="mb-2 flex items-center justify-between gap-3 text-sm">
-              <span class="flex items-center gap-2 text-slate-200"><span>{{ row.avatar }}</span><span>{{ row.name }}</span></span>
-              <span class="{{ 'text-emerald-300' if row.balance > 0 else ('text-rose-300' if row.balance < 0 else 'text-slate-300') }}">
-                {{ row.balance|currency if row.balance >= 0 else '-' ~ ((-row.balance)|currency) }}
-              </span>
-            </div>
-            <div class="h-3 overflow-hidden rounded-full bg-slate-800">
-              <div class="h-full rounded-full transition-all duration-500 {{ 'bg-emerald-400' if row.balance > 0 else ('bg-rose-400' if row.balance < 0 else 'bg-slate-500') }}" style="width: {{ width }}%"></div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- How it's calculated -->
-    <div class="rounded-[2rem] border border-white/10 bg-gradient-to-br from-emerald-400/10 to-white/5 p-6 backdrop-blur-xl fade-in">
-      <h2 class="text-xl font-semibold text-white">How it's calculated</h2>
-      <div class="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-        <p><span class="font-medium text-sky-200">Simple expenses</span>: Amount is divided equally among selected consumers. Payer gets credited.</p>
-        <p><span class="font-medium text-amber-200">Restaurant bills</span>: Offer discount is shared by all diners. Taxes (GST) are split fairly. Advance cover charge is credited to whoever booked. Dineout coins are treated as personal wallet savings (reimbursed by the group) or shared group credits.</p>
-        <p><span class="font-medium text-violet-200">Itemized bills</span>: Each person's share is proportional to their individual items. Any difference between items total and bill is distributed proportionally.</p>
-        <p>Finally, debts are simplified into the fewest transactions possible.</p>
-      </div>
-    </div>
-  </aside>
-</section>
-
-<!-- Data for clipboard export -->
+<!-- Export Data -->
 <script id="settlementExportData" type="application/json">{{ {
   "trip": trip,
   "scope": scope,
@@ -288,8 +253,11 @@
 
     const lines = [];
     const title = scope === 'trip' ? `SETTLEMENT — ${(trip.name || 'TRIP').toUpperCase()}` : 'OVERALL SETTLEMENT';
-    lines.push(title);
-    lines.push('━'.repeat(40));
+    lines.push('='.repeat(42));
+    lines.push('              TALLYUP                  ');
+    lines.push('         SETTLEMENT SUMMARY            ');
+    lines.push(title.padStart((42 + title.length) / 2).padEnd(42));
+    lines.push('='.repeat(42));
 
     lines.push('NET BALANCES:');
     balances.forEach(b => {
@@ -297,49 +265,49 @@
       if (bal > 0) {
         lines.push(`• ${b.name}: Gets back ${fmtMoney(bal)}`);
       } else if (bal < 0) {
-        const settledNote = b.is_fully_settled ? ' [PAID / SETTLED]' : '';
+        const settledNote = b.is_fully_settled ? ' [PAID]' : '';
         lines.push(`• ${b.name}: Owes ${fmtMoney(Math.abs(bal))}${settledNote}`);
       } else {
         lines.push(`• ${b.name}: Settled`);
       }
     });
 
-    lines.push('━'.repeat(40));
-    lines.push('WHO OWES WHOM & PAYMENT:');
+    lines.push('-'.repeat(42));
+    lines.push('PAYMENT DUES:');
     if (transactions.length === 0) {
       lines.push('• Everyone is completely settled!');
     } else {
       transactions.forEach(tx => {
         const isSettled = tx.is_settled;
-        const statusTag = isSettled ? '[PAID / SETTLED]' : '[PENDING]';
-        lines.push(`• ${tx.from} owes ${tx.to}: ${fmtMoney(tx.amount)} ${statusTag}`);
+        const statusTag = isSettled ? '[PAID]' : '[PENDING]';
+        lines.push(`- ${tx.from} owes ${tx.to}: ${fmtMoney(tx.amount)} ${statusTag}`);
 
         if (!isSettled && tx.to_upi) {
           const upiClean = tx.to_upi.trim();
           const amtStr = parseFloat(tx.amount).toFixed(2);
           const payLink = `upi://pay?pa=${encodeURIComponent(upiClean)}&pn=${encodeURIComponent(tx.to)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent((trip.name || 'Settlement') + ' Dues')}`;
-          lines.push(`  Pay ${tx.to} (GPay / PhonePe / Paytm / BHIM):`);
-          lines.push(`  ${payLink}`);
+          lines.push(`  Pay Link: [Pay via UPI](${payLink})`);
         }
       });
     }
 
-    lines.push('━'.repeat(40));
-    lines.push('\n*Auto-generated*');
+    lines.push('='.repeat(42));
+    lines.push('             *Auto-generated*          ');
     return lines.join('\n');
   }
 
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
       const text = generateSettlementText();
-      const original = copyBtn.textContent;
       const doCopy = () => {
-        copyBtn.textContent = 'Copied!';
-        copyBtn.classList.add('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+        copyBtn.textContent = 'COPIED!';
+        copyBtn.style.color = '#fff';
+        copyBtn.style.background = '#0A8F20';
         setTimeout(() => {
-          copyBtn.textContent = original;
-          copyBtn.classList.remove('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
-        }, 2200);
+          copyBtn.textContent = '[COPY SETTLEMENT]';
+          copyBtn.style.color = '';
+          copyBtn.style.background = '';
+        }, 2000);
       };
 
       if (navigator.clipboard && window.isSecureContext) {

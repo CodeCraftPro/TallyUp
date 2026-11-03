@@ -2,68 +2,39 @@
 {% block title %}TallyUp — {{ 'Edit Expense' if is_edit else 'Add Expense' }}{% endblock %}
 
 {% block content %}
-<header class="mb-6 slide-up">
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 10px 16px;">
+  
+  <!-- Subheader -->
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="btn btn-dim btn-sm">← {{ trip.name|upper }}</a>
+      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em; text-transform: uppercase;">
+        {{ 'EDIT EXPENSE' if is_edit else 'ADD EXPENSE' }}
+      </span>
+      {% if not is_edit %}
+      <div style="display: flex; gap: 4px; margin-left: 6px;">
+        <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=request.args.get('event_id', '')) }}"
+          class="mode-tab {{ 'active' if mode == 'simple' else '' }}" style="padding: 2px 8px; font-size: 10px;">
+          💰 SIMPLE SPLIT
+        </a>
+        <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=request.args.get('event_id', '')) }}"
+          class="mode-tab {{ 'active' if mode == 'restaurant' else '' }}" style="padding: 2px 8px; font-size: 10px;">
+          🍽️ RESTAURANT BILL
+        </a>
+      </div>
+      {% else %}
+      <span class="badge badge-dim" style="font-size: 9px;">
+        MODE: {{ 'RESTAURANT BILL' if mode == 'restaurant' else 'SIMPLE SPLIT' }}
+      </span>
+      {% endif %}
+    </div>
+
     <div>
-      <a href="{{ url_for('trip_view', trip_id=trip.id) }}"
-        class="mb-2 inline-flex items-center gap-1 text-sm text-slate-400 transition hover:text-sky-300">← Back to {{
-        trip.name }}</a>
-      <h1 class="text-3xl font-semibold tracking-tight text-white">{{ 'Edit Expense' if is_edit else 'Add Expense' }}
-      </h1>
+      <button type="button" id="openScannerBtn" class="trigger-scanner-btn btn btn-solid btn-sm" style="font-size: 10px;">
+        [📷 SCAN RECEIPT OCR]
+      </button>
     </div>
   </div>
-</header>
-
-<!-- Mode Tabs -->
-{% if not is_edit %}
-<div class="mb-5 flex flex-wrap items-center justify-between gap-3 fade-in">
-  <div class="flex gap-2">
-    <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=request.args.get('event_id', '')) }}"
-      class="mode-tab rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold transition {{ 'active' if mode == 'simple' else 'bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/[0.08]' }}">
-      💰 Simple Split
-    </a>
-    <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=request.args.get('event_id', '')) }}"
-      class="mode-tab rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold transition {{ 'active border-amber-400/40 !bg-amber-400/10 !text-amber-200' if mode == 'restaurant' else 'bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/[0.08]' }}">
-      🍽️ Restaurant / Dineout
-    </a>
-  </div>
-
-  <button type="button" id="openScannerBtn"
-    class="trigger-scanner-btn inline-flex items-center gap-2 rounded-2xl border border-indigo-400/40 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-sky-500/20 px-4 py-3 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-indigo-500/10 transition hover:scale-[1.02] hover:border-indigo-400 active:scale-95">
-    <span class="text-base sm:text-lg">🧾</span>
-    <span>Scan Any Receipt</span>
-    <span class="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-medium text-emerald-300">Free &
-      Local</span>
-  </button>
-</div>
-
-<!-- Instant Scanner Quick Banner -->
-<div
-  class="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-sky-400/20 bg-sky-500/[0.06] px-4 py-3 text-xs text-sky-200 fade-in">
-  <div class="flex items-center gap-2.5">
-    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/20 text-base">⚡</span>
-    <span>
-      <strong>Have a paper bill or photo?</strong> Scan dining bills, fuel pumps, groceries, cabs or retail in ~0.7s
-      with zero cloud cost.
-    </span>
-  </div>
-  <button type="button"
-    class="trigger-scanner-btn shrink-0 font-semibold text-sky-300 hover:text-white hover:underline transition">
-    Scan Receipt →
-  </button>
-</div>
-{% else %}
-<div class="mb-6 flex items-center justify-between gap-2 fade-in">
-  <span class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-300">
-    Mode: {{ '🍽️ Restaurant Bill' if mode == 'restaurant' else '💰 Simple Expense' }}
-  </span>
-  <button type="button"
-    class="trigger-scanner-btn inline-flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/20 px-3.5 py-1.5 text-xs font-semibold text-indigo-200 hover:bg-indigo-500/30 transition">
-    <span>🧾</span>
-    <span>Re-scan Receipt</span>
-  </button>
-</div>
-{% endif %}
 
 {% if mode == 'simple' %}
 <!-- ========== SIMPLE MODE (2-COLUMN HIGH-DENSITY LAYOUT) ========== -->
@@ -72,10 +43,10 @@
   <input type="hidden" name="mode" value="simple">
   <input type="hidden" name="items_data" id="itemsData" value="[]">
 
-  <div class="grid gap-5 lg:grid-cols-12 lg:items-start">
+  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden;" class="lg:grid-cols-12">
     <!-- LEFT COLUMN: Inputs (7 cols) -->
-    <div class="space-y-4 lg:col-span-7">
-      <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl space-y-4">
+    <div class="panel-scroll lg:col-span-7" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+      <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-lg">💰</span>
@@ -213,9 +184,8 @@
     </div>
 
     <!-- RIGHT COLUMN: Sticky Live Receipt (5 cols) -->
-    <div class="space-y-4 lg:col-span-5 lg:sticky lg:top-5">
-      <div id="simpleSummaryCard"
-        class="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/95 p-5 backdrop-blur-xl shadow-2xl space-y-3.5">
+    <div class="panel-scroll lg:col-span-5" style="overflow-y: auto; padding-right: 2px; display: flex; flex-direction: column; gap: 10px;">
+      <div id="simpleSummaryCard" class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
           <div class="flex items-center gap-2">
             <span class="flex h-2 w-2 rounded-full bg-sky-400 animate-pulse"></span>
@@ -295,13 +265,13 @@
   <input type="hidden" name="mode" value="restaurant">
   <input type="hidden" name="items_data" id="itemsData" value="[]">
 
-  <div class="grid gap-5 lg:grid-cols-12 lg:items-start">
+  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden;" class="lg:grid-cols-12">
 
     <!-- LEFT COLUMN: Input Panels (7 cols) -->
-    <div class="space-y-4 lg:col-span-7">
+    <div class="panel-scroll lg:col-span-7" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
 
       <!-- Panel 1: Bill & Table Members -->
-      <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl space-y-4">
+      <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-lg">🍽️</span>
@@ -665,9 +635,8 @@
     </div>
 
     <!-- RIGHT COLUMN: Sticky Live Receipt & Actions (5 cols) -->
-    <div class="space-y-4 lg:col-span-5 lg:sticky lg:top-5">
-      <div id="billSummary"
-        class="rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/95 p-5 backdrop-blur-xl shadow-2xl space-y-3.5">
+    <div class="panel-scroll lg:col-span-5" style="overflow-y: auto; padding-right: 2px; display: flex; flex-direction: column; gap: 10px;">
+      <div id="billSummary" class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
 
         <!-- Header with Live Indicator & Action Buttons -->
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
@@ -805,58 +774,47 @@
   </div>
 </form>
 {% endif %}
+</div>
 
 <!-- QR Code Popup Modal -->
-<div id="qrModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
-  <div
-    class="relative w-full max-w-sm rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl text-center space-y-4">
-    <div class="flex items-center justify-between border-b border-white/10 pb-3">
-      <h3 class="text-sm font-bold uppercase tracking-wider text-white">Scan & Pay via UPI</h3>
-      <button type="button" id="closeQrModal" class="text-slate-400 hover:text-white transition text-lg px-2">✕</button>
+<div id="qrModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.85);">
+  <div class="card panel-scroll" style="width: 100%; max-width: 360px; padding: 20px; text-align: center;">
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 12px;">
+      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #fff;">SCAN & PAY VIA UPI</span>
+      <button type="button" id="closeQrModal" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
-    <div class="rounded-2xl bg-white p-4 shadow-xl inline-block mx-auto">
-      <img id="qrModalImg" src="" alt="UPI QR Code" class="h-52 w-52 rounded-lg mx-auto object-contain">
+    <div style="background: #ffffff; padding: 8px; display: inline-block; margin: 0 auto 10px auto; border: 1px solid #2a2a2a;">
+      <img id="qrModalImg" src="" alt="UPI QR Code" style="width: 180px; height: 180px; display: block; margin: 0 auto;">
     </div>
-    <div>
-      <p class="text-xs font-semibold text-white" id="qrModalName"></p>
-      <p class="text-lg font-extrabold text-emerald-400" id="qrModalAmount"></p>
-      <p class="text-xs font-mono text-slate-300 mt-1 truncate" id="qrModalUpi"></p>
+    <div style="margin-bottom: 12px;">
+      <p style="font-size: 12px; font-weight: 600; color: #fff; margin: 0;" id="qrModalName"></p>
+      <p class="receipt-font" style="font-size: 18px; font-weight: 700; color: #0A8F20; margin: 4px 0 0 0;" id="qrModalAmount"></p>
+      <p style="font-size: 11px; color: #666; margin: 4px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="qrModalUpi"></p>
     </div>
-    <div class="space-y-2 pt-1">
-      <a id="qrModalDeepLink" href="#"
-        class="block w-full rounded-xl bg-emerald-500 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition">
-        Open UPI App →
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <a id="qrModalDeepLink" href="#" class="btn btn-solid" style="height: 34px; justify-content: center; font-size: 11px;">
+        OPEN UPI APP →
       </a>
-      <button type="button" id="copyModalUpiBtn"
-        class="w-full rounded-xl border border-white/10 bg-white/5 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 transition">
-        Copy UPI ID
+      <button type="button" id="copyModalUpiBtn" class="btn btn-dim btn-sm" style="justify-content: center;">
+        COPY UPI ID
       </button>
     </div>
   </div>
 </div>
 
 <!-- Receipt Scanner Modal (100% Free & Local RapidOCR) -->
-<div id="receiptScannerModal"
-  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
-  <div
-    class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl border border-white/10 bg-slate-900 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+<div id="receiptScannerModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.85);">
+  <div class="card panel-scroll" style="width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; padding: 20px;">
     <!-- Modal Header -->
-    <div class="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-900/90">
-      <div class="flex items-center gap-3">
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-lg shadow-inner">
-          🧾
-        </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge badge-green">LOCAL OCR</span>
         <div>
-          <h3 class="text-base font-semibold text-white">Smart Receipt Scanner</h3>
-          <p class="text-xs text-slate-400">100% Free & Local · Works with Dining, Groceries, Fuel, Cabs & Retail</p>
+          <span style="font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase;">SMART RECEIPT SCANNER</span>
+          <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">RapidOCR ONNX · Dining, Groceries, Fuel & Cabs</p>
         </div>
       </div>
-      <button type="button" id="closeScannerModalBtn"
-        class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition"
-        title="Close">
-        ✕
-      </button>
+      <button type="button" id="closeScannerModalBtn" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
     <!-- Modal Body (Scrollable) -->

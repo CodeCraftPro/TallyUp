@@ -2,617 +2,430 @@
 {% block title %}TallyUp — {{ trip.name }}{% endblock %}
 
 {% block content %}
-<!-- Trip Header -->
-<header class="mb-6 slide-up">
-  <div
-    class="flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-white/5 p-5 backdrop-blur-xl sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-    <div class="flex items-center gap-4">
-      <div
-        class="flex h-14 w-14 items-center justify-center rounded-2xl {{ 'bg-slate-800 text-2xl' if trip.is_general else 'bg-gradient-to-br from-sky-500/20 to-violet-500/20 text-2xl' }}">
-        {{ '🧾' if trip.is_general else '📁' }}
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="text-3xl font-semibold tracking-tight text-white">{{ trip.name }}</h1>
-          {% if trip.group_name %}
-          <span
-            class="rounded-md border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-300">{{
-            trip.group_name }}</span>
-          {% endif %}
-        </div>
-        <p class="mt-1 text-sm text-slate-400">
-          {% if trip.date %}{{ trip.date|format_date }} · {% endif %}
-          {{ events|length }} event{{ '' if events|length == 1 else 's' }} ·
-          {{ members|length }} member{{ '' if members|length == 1 else 's' }}
-        </p>
-        <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
-          {% for m in members %}
-          <span
-            class="inline-flex items-center gap-1 rounded-full border border-white/10 bg-slate-950/60 px-2 py-0.5 text-xs text-slate-200">
-            <span>{{ m.avatar }}</span>
-            <span>{{ m.name }}</span>
-          </span>
-          {% endfor %}
-          <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('hidden')"
-            class="inline-flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-400/20 active:scale-95"
-            title="Add or remove members for this trip">
-            <span>+ Edit Group</span>
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="flex flex-wrap items-center gap-2">
-      <button type="button" id="copyTripBreakdownBtn"
-        class="rounded-2xl border border-sky-400/40 bg-sky-500/10 px-4 py-2.5 text-sm font-semibold text-sky-200 shadow-lg shadow-sky-500/10 transition hover:bg-sky-500/20 active:scale-95"
-        title="Copy clean detailed WhatsApp summary for the whole trip">
-        Copy Trip Summary
-      </button>
-
-      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple') }}"
-        class="rounded-2xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400">+
-        Simple Expense</a>
-      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant') }}"
-        class="rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 transition hover:from-amber-400 hover:to-orange-400">🍽️
-        Restaurant Bill</a>
-      <a href="{{ url_for('trip_settle', trip_id=trip.id) }}"
-        class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:border-emerald-400/40 hover:bg-emerald-400/10">Settlement
-        →</a>
-      {% if not trip.is_general %}
-      <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" class="inline"
-        onsubmit="return confirm('Delete this trip and all its expenses?')">
-        <button type="submit"
-          class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-slate-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100">Delete
-          Trip</button>
-      </form>
+<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 10px 16px;">
+  
+  <!-- Subheader / Status Bar -->
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-dim btn-sm">← DASHBOARD</a>
+      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em; text-transform: uppercase;">
+        {{ trip.name }}
+      </span>
+      {% if trip.date %}
+      <span style="font-size: 11px; color: #888;">{{ trip.date|format_date }}</span>
       {% endif %}
-    </div>
-  </div>
-</header>
+      {% if trip.group_name %}
+      <span class="badge badge-green" style="font-size: 9px;">{{ trip.group_name }}</span>
+      {% endif %}
 
-<section class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-  <!-- Left: Events & Expenses -->
-  <div class="space-y-6">
-    <!-- Add Event Card -->
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-5 backdrop-blur-xl fade-in space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-          <span>Add an event</span>
-          <span class="rounded-full bg-indigo-500/10 border border-indigo-400/20 px-2 py-0.5 text-[10px] font-medium text-indigo-300">Fast Auto-Creation</span>
-        </h2>
-      </div>
-
-      <!-- Drag & Drop Receipt Zone (supports drag-and-drop & file selection) -->
-      <div id="eventReceiptDropzone" class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-indigo-400/30 bg-indigo-500/[0.03] p-5 text-center transition hover:border-indigo-400/60 hover:bg-indigo-500/[0.07] cursor-pointer">
-        <input type="file" id="eventReceiptFileInput" accept="image/*" class="sr-only">
-        <div class="flex items-center gap-3.5">
-          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/20 text-2xl text-indigo-300 transition group-hover:scale-110">
-            🧾
-          </div>
-          <div class="text-left">
-            <p class="text-xs font-semibold text-white">
-              Drag & drop receipt photo here, or <span class="text-sky-300 underline underline-offset-2">browse image</span>
-            </p>
-            <p class="mt-0.5 text-[11px] text-slate-400">
-              RapidOCR detects venue, meal time & auto-fills dishes, prices & taxes
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Live Loading State for Event Receipt Scanning -->
-      <div id="eventScanLoading"
-        class="hidden items-center gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-200">
-        <span class="flex h-3 w-3 rounded-full bg-indigo-400 animate-pulse"></span>
-        <span>Scanning receipt locally with RapidOCR... Extracting meal type & venue</span>
-      </div>
-
-      <!-- Scanned Event Preview Card -->
-      <div id="eventScanPreview"
-        class="hidden rounded-2xl border border-indigo-400/30 bg-indigo-950/40 p-4 space-y-3 animate-in fade-in">
-        <div class="flex items-center justify-between">
-          <span id="eventScanBadge"
-            class="rounded-lg bg-amber-500/20 border border-amber-400/30 px-2 py-0.5 text-xs font-semibold text-amber-200"></span>
-          <span id="eventScanAmount" class="text-xs font-bold text-white"></span>
-        </div>
-        <div class="grid gap-2 sm:grid-cols-2">
-          <div>
-            <label class="block text-[11px] font-medium text-slate-300 mb-1">Detected Event Name (editable)</label>
-            <input type="text" id="eventScanNameInput"
-              class="h-9 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-indigo-400">
-          </div>
-          <div>
-            <label class="block text-[11px] font-medium text-slate-300 mb-1">Event Type (editable)</label>
-            <select id="eventScanTypeSelect"
-              class="h-9 w-full rounded-lg border border-white/10 bg-slate-900 px-2 text-xs text-white outline-none focus:border-indigo-400">
-              {% for key, val in event_types.items() %}
-              <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
-          <button type="button" id="autoSaveEventExpenseBtn"
-            class="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2.5 text-xs font-semibold text-white shadow-md hover:from-emerald-400 hover:to-teal-500 transition">
-            ⚡ Save Event & Expenses Directly
-          </button>
-          <button type="button" id="createEventAndSplitBtn"
-            class="rounded-xl border border-sky-400/40 bg-sky-500/20 px-3.5 py-2.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/30 transition">
-            ✏️ Open Bill & Edit Split →
-          </button>
-          <button type="button" id="cancelEventScanBtn"
-            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-medium text-slate-400 hover:text-white transition"
-            title="Dismiss">
-            ✕
-          </button>
-        </div>
-      </div>
-
-            <div class="flex items-center gap-3">
-        <div class="h-px flex-1 bg-white/10"></div>
-        <span class="text-[11px] font-medium text-slate-500 uppercase tracking-wider">or enter event manually</span>
-        <div class="h-px flex-1 bg-white/10"></div>
-      </div>
-
-      <!-- Standard Manual Form -->
-      <form id="manualEventForm" method="post" action="{{ url_for('create_event', trip_id=trip.id) }}"
-        class="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div class="flex-1">
-          <label for="event_name" class="mb-1 block text-sm text-slate-300">Event name</label>
-          <input id="event_name" name="event_name" type="text" required maxlength="60"
-            placeholder="e.g. Dinner at Paradise"
-            class="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
-        </div>
-        <div class="w-full sm:w-40">
-          <label for="event_type" class="mb-1 block text-sm text-slate-300">Type</label>
-          <select id="event_type" name="event_type"
-            class="h-11 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white outline-none transition focus:border-sky-400/60">
-            {% for key, val in event_types.items() %}
-            <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <button type="submit"
-          class="h-11 rounded-xl bg-sky-500 px-5 text-sm font-semibold text-white transition hover:bg-sky-400 active:scale-[0.99]">+
-          Add</button>
-      </form>
-    </div>
-
-    <!-- Events list -->
-    {% for event in events %}
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl fade-in">
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <span class="text-xl">{{ event.type_icon }}</span>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-xl font-semibold text-white">{{ event.name }}</h2>
-              <button type="button"
-                onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')"
-                class="rounded-lg border border-white/10 bg-white/5 p-1 text-xs text-slate-400 hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-white transition"
-                title="Edit Event Name & Type">
-                ✏️
-              </button>
-            </div>
-            <p class="text-sm text-slate-400">{{ event.type_label }} · {{ event.expenses|length }} expense{{ '' if
-              event.expenses|length == 1 else 's' }} · {{ event.total|currency }}</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-2">
-          <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}"
-            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:border-sky-400/40 hover:bg-sky-400/10">+
-            Simple</a>
-          <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}"
-            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-amber-300 transition hover:border-amber-400/40 hover:bg-amber-400/10">🍽️
-            Dineout</a>
-          <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}" class="inline"
-            onsubmit="return confirm('Delete this event and all its expenses?')">
-            <button type="submit"
-              class="rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-slate-400 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-200"
-              title="Delete Event">✕</button>
-          </form>
-        </div>
-      </div>
-
-      {% if event.expenses %}
-      <div class="space-y-3">
-        {% for exp in event.expenses %}
-        <article
-          class="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/[0.07]">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="space-y-1.5 flex-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <span
-                  class="rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wider {{ 'bg-amber-400/10 text-amber-200' if exp.mode == 'restaurant' else 'bg-sky-400/10 text-sky-200' }}">
-                  {{ '🍽️ Restaurant' if exp.mode == 'restaurant' else '💰 Simple' }}
-                </span>
-                {% if exp.is_treat %}
-                <span
-                  class="rounded-full bg-purple-500/20 border border-purple-400/40 px-2 py-0.5 text-xs font-semibold text-purple-200">
-                  🎁 Treat
-                </span>
-                {% endif %}
-                <h3 class="text-lg font-semibold text-white">{{ exp.description }}</h3>
-                <span class="rounded-full bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-200">{{
-                  exp.display_amount|currency }}</span>
-              </div>
-              {% if exp.is_treat %}
-              <p class="text-sm text-purple-300 font-medium">🎁 Hosted as a Treat by <span class="text-white">{{
-                  exp.paid_by_name }}</span> (Friends owe ₹0.00)</p>
-              <p class="text-xs text-slate-400">Attendees: {{ exp.consumer_names|join(', ') }}</p>
-              {% else %}
-              <p class="text-sm text-slate-300">Paid by <span class="font-medium text-white">{{ exp.paid_by_name
-                  }}</span></p>
-              <p class="text-sm text-slate-400">Split among {{ exp.consumer_names|join(', ') }}</p>
-              {% endif %}
-
-              {% if exp.mode == 'restaurant' %}
-              <div class="mt-2 flex flex-wrap gap-2">
-                {% if exp.discount_percent and exp.discount_percent != '0' %}
-                <span class="rounded-lg bg-emerald-400/10 px-2 py-1 text-xs text-emerald-200">{{ exp.discount_percent
-                  }}% discount</span>
-                {% endif %}
-                {% if exp.convenience_fee and exp.convenience_fee != '0' %}
-                <span class="rounded-lg bg-amber-400/10 px-2 py-1 text-xs text-amber-200">+₹{{ exp.convenience_fee }}
-                  fee</span>
-                {% endif %}
-                {% if exp.service_charge and exp.service_charge != '0' %}
-                <span class="rounded-lg bg-violet-400/10 px-2 py-1 text-xs text-violet-200">Service: ₹{{
-                  exp.service_charge }}</span>
-                {% endif %}
-                {% if exp.tax_amount and exp.tax_amount != '0' %}
-                <span class="rounded-lg bg-teal-400/10 px-2 py-1 text-xs text-teal-200">Tax: ₹{{ exp.tax_amount }}
-                  (included)</span>
-                {% elif exp.tax_percent and exp.tax_percent != '0' %}
-                <span class="rounded-lg bg-teal-400/10 px-2 py-1 text-xs text-teal-200">Tax: {{ exp.tax_percent }}%
-                  (included)</span>
-                {% endif %}
-                {% if exp.has_items and ((exp.tax_percent and exp.tax_percent != '0') or (exp.tax_amount and
-                exp.tax_amount != '0')) %}
-                <span class="rounded-lg bg-teal-400/10 px-2 py-1 text-xs text-teal-200">
-                  Tax split: {{ 'Equally' if exp.tax_split_method == 'equal' else 'Proportional' }}
-                </span>
-                {% endif %}
-                {% if exp.cover_charge_total and exp.cover_charge_total != '0' %}
-                <span class="rounded-lg bg-violet-400/10 px-2 py-1 text-xs text-violet-200">Table Booking: ₹{{
-                  exp.cover_charge_total }} ({{ exp.cover_paid_by_name }})</span>
-                {% elif exp.cover_charge_per_person and exp.cover_charge_per_person != '0' %}
-                <span class="rounded-lg bg-violet-400/10 px-2 py-1 text-xs text-violet-200">Table Booking: ₹{{
-                  exp.cover_charge_per_person }}/person ({{ exp.cover_paid_by_name }})</span>
-                {% endif %}
-                {% if exp.dineout_coins and exp.dineout_coins != '0' %}
-                <span class="rounded-lg bg-amber-400/10 px-2 py-1 text-xs text-amber-200">
-                  Coins: ₹{{ exp.dineout_coins }} ({{ exp.coins_by_name }})
-                  {{ '· split' if exp.include_coins_in_split else '· personal' }}
-                </span>
-                {% endif %}
-                {% if exp.has_items %}
-                <span class="rounded-lg bg-sky-400/10 px-2 py-1 text-xs text-sky-200">{{ exp.enriched_items|length }}
-                  items itemized</span>
-                {% endif %}
-              </div>
-              {% endif %}
-
-              {% if exp.has_items %}
-              <!-- Collapsible Itemized Breakdown -->
-              <div class="mt-2.5">
-                <button type="button"
-                  class="toggle-items-btn inline-flex items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-400/20 active:scale-[0.99]"
-                  data-count="{{ exp.enriched_items|length }}">
-                  <span class="btn-text">📋 View Items Breakdown ({{ exp.enriched_items|length }})</span>
-                  <span class="chevron inline-block transition-transform duration-200">▼</span>
-                </button>
-
-                <div
-                  class="items-drawer hidden mt-2.5 rounded-2xl border border-white/10 bg-slate-950/70 p-4 space-y-2.5">
-                  <div class="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span class="text-xs uppercase tracking-wider font-semibold text-sky-300">Itemized Receipt</span>
-                    <span class="text-xs text-slate-400">Total: {{ exp.display_amount|currency }}</span>
-                  </div>
-                  <div class="divide-y divide-white/5 space-y-2">
-                    {% for it in exp.enriched_items %}
-                    <div class="flex items-center justify-between pt-2 text-sm">
-                      <div>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                          <p class="font-medium text-white">{{ it.name }}</p>
-                          {% if it.paid_by_name and it.paid_by != exp.paid_by %}
-                          <span
-                            class="rounded-md border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                            💳 Paid by {{ it.paid_by_avatar }} {{ it.paid_by_name }}{{ ' (extra)' if it.is_outside else
-                            '' }}
-                          </span>
-                          {% endif %}
-                        </div>
-                        <p class="text-xs text-slate-400">
-                          Consumed by:
-                          {% for i in range(it.consumer_names|length) %}
-                          <span>{{ it.consumer_avatars[i] }} {{ it.consumer_names[i] }}</span>{{ ', ' if not loop.last
-                          else '' }}
-                          {% endfor %}
-                        </p>
-                      </div>
-                      <span class="font-semibold text-white">{{ it.price|currency }}</span>
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-              </div>
-              {% endif %}
-            </div>
-
-            <!-- Action Buttons on Expense Card -->
-            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <button type="button"
-                class="copy-exp-btn rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-200 active:scale-95"
-                data-expense-id="{{ exp.id }}" title="Copy WhatsApp breakdown for this bill">
-                Copy
-              </button>
-              <a href="{{ url_for('edit_expense', trip_id=trip.id, expense_id=exp.id) }}"
-                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 active:scale-95">
-                Edit
-              </a>
-              <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" class="inline"
-                onsubmit="return confirm('Delete this expense?')">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="expense_id" value="{{ exp.id }}">
-                <button type="submit"
-                  class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-rose-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100">Delete</button>
-              </form>
-            </div>
-          </div>
-        </article>
+      <!-- Members chips -->
+      <div style="display: flex; align-items: center; gap: 4px;">
+        {% for m in members %}
+        <span style="font-size: 10px; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 1px 6px; color: #888;">
+          {{ m.avatar }} {{ m.name }}
+        </span>
         {% endfor %}
+        <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('active')" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 1px 6px;">
+          + EDIT ROSTER
+        </button>
       </div>
-      {% else %}
-      <div class="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-8 text-center">
-        <p class="text-sm text-slate-400">No expenses yet in this event. Add one above.</p>
-      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+      <button type="button" id="copyTripBreakdownBtn" class="btn btn-sm" title="Copy ASCII thermal receipt">
+        [COPY ASCII RECEIPT]
+      </button>
+      <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-sm">
+        + EVENT
+      </button>
+      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple') }}" class="btn btn-sm">
+        + SIMPLE
+      </a>
+      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant') }}" class="btn btn-solid btn-sm">
+        + RESTAURANT BILL
+      </a>
+      <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn btn-dim btn-sm">
+        SETTLE →
+      </a>
+      {% if not trip.is_general %}
+      <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete this trip and all its expenses?')">
+        <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 6px;">✕</button>
+      </form>
       {% endif %}
     </div>
-    {% endfor %}
-
-    {% if not events %}
-    <div class="rounded-[2rem] border border-dashed border-white/10 bg-white/[0.03] px-6 py-16 text-center">
-      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-2xl">🧾</div>
-      <h3 class="text-lg font-semibold text-white">No events yet</h3>
-      <p class="mt-2 text-sm text-slate-400">Create an event above to start tracking expenses.</p>
-    </div>
-    {% endif %}
   </div>
 
-  <!-- Right: Trip Balance + Mini Settlement -->
-  <aside class="space-y-6 xl:sticky xl:top-6 xl:self-start">
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
-      <div class="mb-4 flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-white">Trip Balance</h2>
-          <p class="mt-1 text-sm text-slate-400">For "{{ trip.name }}"</p>
-        </div>
-        <div class="rounded-xl bg-white/5 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-400">Live</div>
-      </div>
-
-      <div class="space-y-3">
-        {% for row in balances %}
-        {% set status_class = 'text-emerald-300' if row.balance > 0 else ('text-rose-300' if row.balance < 0
-          else 'text-slate-300' ) %} {% set bg_class='from-emerald-400/12 to-transparent' if row.balance> 0 else
-          ('from-rose-400/12 to-transparent' if row.balance < 0 else 'from-white/5 to-transparent' ) %} <div
-            class="rounded-2xl border border-white/10 bg-gradient-to-r {{ bg_class }} p-4">
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950/60 text-lg">{{
-                  row.avatar }}</div>
-                <p class="text-sm font-medium text-white">{{ row.name }}</p>
-              </div>
-              <div class="text-right">
-                {% if row.balance > 0 %}
-                <p class="text-sm font-semibold {{ status_class }}">Gets back {{ row.balance|currency }}</p>
-                {% elif row.balance < 0 %} {% if row.is_fully_settled %} <p
-                  class="text-sm font-semibold text-emerald-400">Owes {{ (-row.balance)|currency }} · <span
-                    class="font-bold">✓ Settled</span></p>
-                  {% else %}
-                  <p class="text-sm font-semibold {{ status_class }}">Owes {{ (-row.balance)|currency }}</p>
-                  {% endif %}
-                  {% else %}
-                  <p class="text-sm font-semibold {{ status_class }}">Settled</p>
-                  {% endif %}
-              </div>
-            </div>
-      </div>
-      {% endfor %}
-    </div>
-    </div>
-
-    <!-- Quick Transactions Preview with Mark Settled Toggle -->
-    {% if transactions %}
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
-      <div class="mb-4 flex items-center justify-between">
-        <div>
-          <h2 class="text-xl font-semibold text-white">Settlement</h2>
-          <p class="text-xs text-slate-400">Mark who paid their share</p>
-        </div>
-        <button type="button" id="copySettlementCardBtn"
-          class="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition">
-          Copy
+  <!-- 3-Panel Horizontal Layout -->
+  <div style="flex: 1; display: grid; grid-template-columns: 280px 1fr 300px; gap: 10px; overflow: hidden;" class="hidden md:grid" id="desktopTripGrid">
+    
+    <!-- ── Panel 1: Events List & Quick Scanner ── -->
+    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0;">
+        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">EVENTS ({{ events|length }})</span>
+        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-sm" style="font-size: 9px; padding: 1px 6px;">
+          + ADD
         </button>
       </div>
 
-      <div class="space-y-3">
-        {% for tx in transactions %}
-        {% if tx.is_settled %}
-        <div
-          class="flex items-center justify-between rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-3 transition">
-          <div>
-            <p class="text-sm text-slate-200">
-              <span class="line-through text-slate-400 font-semibold">{{ tx.from }}</span>
-              <span class="text-slate-500 mx-1">→</span>
-              <span class="font-semibold text-slate-300">{{ tx.to }}</span>
-            </p>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <span class="text-[11px] font-semibold text-emerald-400">✓ Settled (Paid)</span>
-              {% if tx.settled_at %}<span class="text-[10px] text-slate-500">· {{ tx.settled_at }}</span>{% endif %}
+      <!-- Quick Drag & Drop Receipt Scanner -->
+      <div id="eventReceiptDropzone" style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 10px; text-align: center; cursor: pointer; margin-bottom: 8px; flex-shrink: 0; transition: border-color 0.15s ease;">
+        <input type="file" id="eventReceiptFileInput" accept="image/*" style="display: none;">
+        <div style="font-size: 11px; color: #0A8F20; font-weight: 600; text-transform: uppercase;">
+          [📷 SCAN RECEIPT OCR]
+        </div>
+        <p style="font-size: 9px; color: #666; margin: 2px 0 0 0;">Drag image or click to auto-create</p>
+      </div>
+
+      <!-- Live Loading State for Event Receipt Scanning -->
+      <div id="eventScanLoading" style="display: none; align-items: center; gap: 8px; background: #0a0a0a; border: 1px solid #0A8F20; padding: 8px; margin-bottom: 8px; font-size: 10px; color: #0A8F20;">
+        <span>▪</span>
+        <span>Scanning with local RapidOCR...</span>
+      </div>
+
+      <!-- Scanned Event Preview Card -->
+      <div id="eventScanPreview" style="display: none; background: #0a0a0a; border: 1px solid #0A8F20; padding: 10px; margin-bottom: 8px; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span id="eventScanBadge" class="badge badge-green" style="font-size: 9px;"></span>
+          <span id="eventScanAmount" class="receipt-font" style="font-size: 11px; font-weight: 700; color: #fff;"></span>
+        </div>
+        <input type="text" id="eventScanNameInput" style="height: 28px; font-size: 11px;">
+        <select id="eventScanTypeSelect" style="height: 28px; font-size: 11px;">
+          {% for key, val in event_types.items() %}
+          <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
+          {% endfor %}
+        </select>
+        <div style="display: flex; gap: 4px; margin-top: 4px;">
+          <button type="button" id="autoSaveEventExpenseBtn" class="btn btn-solid btn-sm" style="flex: 1; justify-content: center; font-size: 9px;">
+            ⚡ SAVE DIRECTLY
+          </button>
+          <button type="button" id="createEventAndSplitBtn" class="btn btn-sm" style="font-size: 9px;">
+            ITEMIZE →
+          </button>
+          <button type="button" id="cancelEventScanBtn" class="btn btn-dim btn-sm" style="padding: 2px 6px;">✕</button>
+        </div>
+      </div>
+
+      <!-- Event Items List -->
+      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px;">
+        {% for event in events %}
+        <div class="event-nav-item" data-event-id="{{ event.id }}" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; transition: border-color 0.15s ease;" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#2a2a2a'">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+              <span style="font-size: 13px;">{{ event.type_icon }}</span>
+              <span style="font-size: 12px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ event.name }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <button type="button" onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')" class="btn btn-dim btn-sm" style="padding: 1px 4px; font-size: 9px;" title="Edit Event">✏️</button>
+              <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Delete event {{ event.name }}?')">
+                <button type="submit" class="btn btn-danger btn-sm" style="padding: 1px 4px; font-size: 9px;" title="Delete">✕</button>
+              </form>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="line-through text-xs text-slate-500">{{ tx.amount|currency }}</span>
-            <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" class="inline">
-              <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-              <input type="hidden" name="from_name" value="{{ tx.from }}">
-              <input type="hidden" name="to_name" value="{{ tx.to }}">
-              <button type="submit"
-                class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-400 hover:text-white transition"
-                title="Mark as pending again">
-                Undo
-              </button>
-            </form>
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #666;">
+            <span>{{ event.expenses|length }} EXPENSE{{ '' if event.expenses|length == 1 else 'S' }}</span>
+            <span class="receipt-font" style="font-weight: 600; color: #0A8F20;">{{ event.total|currency }}</span>
+          </div>
+          <div style="display: flex; gap: 4px; margin-top: 2px;">
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}" class="btn btn-dim btn-sm" style="flex: 1; justify-content: center; font-size: 9px; padding: 1px 4px;">+ SIMPLE</a>
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}" class="btn btn-dim btn-sm" style="flex: 1; justify-content: center; font-size: 9px; padding: 1px 4px;">+ DINEOUT</a>
           </div>
         </div>
-        {% else %}
-        <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3 transition">
-          <div>
-            <p class="text-sm text-slate-200">
-              <span class="font-semibold text-rose-300">{{ tx.from }}</span>
-              <span class="text-slate-500 mx-1">→</span>
-              <span class="font-semibold text-emerald-300">{{ tx.to }}</span>
-            </p>
-            <span class="text-[11px] text-amber-400/90 font-medium">Pending payment</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">{{
-              tx.amount|currency }}</span>
-            <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" class="inline">
-              <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-              <input type="hidden" name="from_name" value="{{ tx.from }}">
-              <input type="hidden" name="to_name" value="{{ tx.to }}">
-              <input type="hidden" name="amount" value="{{ tx.amount }}">
-              <button type="submit"
-                class="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/30 active:scale-95 shadow-sm">
-                Settled
+        {% endfor %}
+
+        {% if not events %}
+        <div style="text-align: center; padding: 20px 10px; color: #666; font-size: 11px;">
+          NO EVENTS YET.<br>ADD AN EVENT OR SCAN A RECEIPT ABOVE.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Panel 2: Expenses & Itemized Dishes ── -->
+    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0;">
+        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">EXPENSE DETAILS & ITEMIZATION</span>
+        <span class="badge badge-dim">ASCII FORMATTED</span>
+      </div>
+
+      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
+        {% for event in events %}
+          {% for exp in event.expenses %}
+          <div class="card" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px;">
+            <!-- Expense Top Bar -->
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span class="badge {{ 'badge-green' if exp.mode == 'restaurant' else 'badge-dim' }}" style="font-size: 9px;">
+                    {{ '🍽️ RESTAURANT' if exp.mode == 'restaurant' else 'SIMPLE' }}
+                  </span>
+                  {% if exp.is_treat %}
+                  <span class="badge badge-amber" style="font-size: 9px;">🎁 TREAT</span>
+                  {% endif %}
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">{{ exp.description }}</span>
+                </div>
+                <div style="font-size: 10px; color: #666; margin-top: 2px;">
+                  IN EVENT: <strong style="color: #888;">{{ event.name }}</strong> ·
+                  {% if exp.is_treat %}
+                    <span style="color: #d97706;">TREAT BY {{ exp.paid_by_name|upper }} (₹0.00 FROM ATTENDEES)</span>
+                  {% else %}
+                    PAID BY <strong style="color: #888;">{{ exp.paid_by_name|upper }}</strong> · DINERS: {{ exp.consumer_names|join(', ') }}
+                  {% endif %}
+                </div>
+              </div>
+              <div style="text-align: right; flex-shrink: 0;">
+                <span class="receipt-font" style="font-size: 15px; font-weight: 700; color: #0A8F20;">{{ exp.display_amount|currency }}</span>
+              </div>
+            </div>
+
+            <!-- Restaurant Meta Badges -->
+            {% if exp.mode == 'restaurant' %}
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0;">
+              {% if exp.discount_percent and exp.discount_percent != '0' %}
+              <span class="badge badge-green" style="font-size: 9px;">{{ exp.discount_percent }}% OFF</span>
+              {% endif %}
+              {% if exp.service_charge and exp.service_charge != '0' %}
+              <span class="badge badge-dim" style="font-size: 9px;">SERVICE: ₹{{ exp.service_charge }}</span>
+              {% endif %}
+              {% if exp.tax_amount and exp.tax_amount != '0' %}
+              <span class="badge badge-dim" style="font-size: 9px;">GST: ₹{{ exp.tax_amount }}</span>
+              {% endif %}
+              {% if exp.dineout_coins and exp.dineout_coins != '0' %}
+              <span class="badge badge-amber" style="font-size: 9px;">COINS: ₹{{ exp.dineout_coins }} ({{ exp.coins_by_name }})</span>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Itemized Dishes Breakdown -->
+            {% if exp.has_items and exp.enriched_items %}
+            <div style="border-top: 1px solid #2a2a2a; margin-top: 8px; padding-top: 8px;">
+              <button type="button" class="toggle-items-btn btn btn-dim btn-sm" style="font-size: 9px; margin-bottom: 6px;" data-count="{{ exp.enriched_items|length }}">
+                <span class="btn-text">📋 VIEW DISHES ({{ exp.enriched_items|length }})</span>
               </button>
-            </form>
+              <div class="items-drawer hidden" style="background: #141414; border: 1px solid #2a2a2a; padding: 8px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  {% for it in exp.enriched_items %}
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0; border-bottom: 1px dashed #222;">
+                    <div>
+                      <span style="color: #fff; font-weight: 500;">{{ it.name }}</span>
+                      <span style="font-size: 9px; color: #666; margin-left: 6px;">({{ it.consumer_names|join(', ') }})</span>
+                    </div>
+                    <span class="receipt-font" style="color: #0A8F20; font-weight: 600;">{{ it.price|currency }}</span>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; border-top: 1px solid #2a2a2a; padding-top: 6px;">
+              <button type="button" class="copy-exp-btn btn btn-sm" data-expense-id="{{ exp.id }}" style="font-size: 9px; padding: 2px 8px;">
+                [COPY ASCII]
+              </button>
+              <a href="{{ url_for('edit_expense', trip_id=trip.id, expense_id=exp.id) }}" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 2px 8px;">
+                EDIT
+              </a>
+              <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete expense?')">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="expense_id" value="{{ exp.id }}">
+                <button type="submit" class="btn btn-danger btn-sm" style="font-size: 9px; padding: 2px 6px;">✕</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        {% endfor %}
+
+        {% if not events %}
+        <div style="text-align: center; padding: 40px 10px; color: #666; font-size: 12px;">
+          NO EXPENSES RECORDED YET.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Panel 3: Balances & Settlement Snapshot ── -->
+    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0;">
+        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">TRIP BALANCES</span>
+        <button type="button" id="copySettlementCardBtn" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 1px 6px;">
+          COPY
+        </button>
+      </div>
+
+      <!-- Balances List -->
+      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px;">
+        {% for row in balances %}
+        {% set is_plus = row.balance > 0 %}
+        {% set is_minus = row.balance < 0 %}
+        <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+            <span style="font-size: 12px;">{{ row.avatar }}</span>
+            <span style="font-size: 11px; color: #d4d4d4; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.name }}</span>
+          </div>
+          <div class="receipt-font" style="font-size: 11px; font-weight: 600;">
+            {% if is_plus %}
+            <span style="color: #0A8F20;">+{{ row.balance|currency }}</span>
+            {% elif is_minus %}
+            <span style="color: #d97706;">-{{ (-row.balance)|currency }}</span>
+            {% else %}
+            <span style="color: #555;">SETTLED</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Minimal Settlement Transfers -->
+        {% if transactions %}
+        <div style="border-top: 1px solid #2a2a2a; margin-top: 6px; padding-top: 6px;">
+          <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: #666; display: block; margin-bottom: 4px;">SETTLEMENT DUES</span>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            {% for tx in transactions %}
+              {% if tx.is_settled %}
+              <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 4px 6px; font-size: 10px; opacity: 0.6;">
+                <div>
+                  <span style="text-decoration: line-through; color: #666;">{{ tx.from }} → {{ tx.to }}</span>
+                  <span style="color: #0A8F20; margin-left: 4px;">✓</span>
+                </div>
+                <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+                  <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+                  <input type="hidden" name="from_name" value="{{ tx.from }}">
+                  <input type="hidden" name="to_name" value="{{ tx.to }}">
+                  <button type="submit" class="btn btn-dim btn-sm" style="font-size: 8px; padding: 1px 4px;">UNDO</button>
+                </form>
+              </div>
+              {% else %}
+              <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 5px 6px; font-size: 10px;">
+                <div>
+                  <span style="color: #d97706;">{{ tx.from }}</span>
+                  <span style="color: #555;"> → </span>
+                  <span style="color: #0A8F20;">{{ tx.to }}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span class="receipt-font" style="font-weight: 700; color: #fff;">{{ tx.amount|currency }}</span>
+                  <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+                    <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+                    <input type="hidden" name="from_name" value="{{ tx.from }}">
+                    <input type="hidden" name="to_name" value="{{ tx.to }}">
+                    <input type="hidden" name="amount" value="{{ tx.amount }}">
+                    <button type="submit" class="btn btn-sm" style="font-size: 8px; padding: 1px 4px;">✓</button>
+                  </form>
+                </div>
+              </div>
+              {% endif %}
+            {% endfor %}
           </div>
         </div>
         {% endif %}
-        {% endfor %}
       </div>
 
-      <a href="{{ url_for('trip_settle', trip_id=trip.id) }}"
-        class="group mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200 active:scale-[0.99]">
-        <span>Full Settlement View</span>
-        <span class="transition group-hover:translate-x-1">→</span>
-      </a>
-    </div>
-    {% endif %}
-
-    <!-- Net Graph -->
-    <div class="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 backdrop-blur-xl">
-      <h2 class="mb-4 text-xl font-semibold text-white">Net Graph</h2>
-      <div class="space-y-4">
-        {% for row in balances %}
-        {% set abs_value = row.balance if row.balance >= 0 else -row.balance %}
-        {% set width = 0 if max_abs == 0 else ((abs_value / max_abs) * 100) %}
-        <div>
-          <div class="mb-2 flex items-center justify-between gap-3 text-sm">
-            <span class="flex items-center gap-2 text-slate-200"><span>{{ row.avatar }}</span><span>{{ row.name
-                }}</span></span>
-            <span
-              class="{{ 'text-emerald-300' if row.balance > 0 else ('text-rose-300' if row.balance < 0 else 'text-slate-300') }}">
-              {{ row.balance|currency if row.balance >= 0 else '-' ~ ((-row.balance)|currency) }}
-            </span>
-          </div>
-          <div class="h-3 overflow-hidden rounded-full bg-slate-800">
-            <div
-              class="h-full rounded-full transition-all duration-500 {{ 'bg-emerald-400' if row.balance > 0 else ('bg-rose-400' if row.balance < 0 else 'bg-slate-500') }}"
-              style="width: calc({{ width }} * 1%);"></div>
-          </div>
-        </div>
-        {% endfor %}
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 8px; margin-top: 6px; flex-shrink: 0;">
+        <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn" style="width: 100%; justify-content: center; height: 32px; font-size: 10px;">
+          FULL SETTLEMENT VIEW →
+        </a>
       </div>
     </div>
-  </aside>
-</section>
 
-<!-- Edit Event Modal -->
-<div id="editEventModal"
-  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
-  <div class="relative w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl space-y-4">
-    <div class="flex items-center justify-between border-b border-white/10 pb-3">
-      <h3 class="text-base font-semibold text-white">Edit Event</h3>
-      <button type="button" onclick="closeEditEventModal()"
-        class="text-slate-400 hover:text-white transition text-lg px-2">✕</button>
+  </div>
+
+  <!-- Mobile Stack Fallback -->
+  <div class="block md:hidden panel-scroll" style="flex: 1; overflow-y: auto;">
+    <p style="font-size: 11px; color: #888; margin-bottom: 8px;">Use tabs or scroll in mobile portrait mode.</p>
+    <!-- Simple summary on mobile -->
+  </div>
+
+</div>
+
+<!-- ═══ MODAL: ADD EVENT ═══ -->
+<div id="addEventModal" class="modal-backdrop">
+  <div class="modal-content panel-scroll" style="max-width: 480px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #fff;">ADD AN EVENT</span>
+      <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
-    <form id="editEventForm" method="post" action="" class="space-y-4">
+
+    <form method="post" action="{{ url_for('create_event', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 12px;">
       <div>
-        <label for="modal_event_name" class="mb-1.5 block text-xs font-medium text-slate-300">Event name</label>
-        <input id="modal_event_name" name="event_name" type="text" required maxlength="60"
-          class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 text-xs text-white outline-none focus:border-sky-400/60">
+        <label for="event_name" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">EVENT NAME</label>
+        <input id="event_name" name="event_name" type="text" required maxlength="60" placeholder="e.g. Dinner at Mirabelle, Fuel, Airbnb">
       </div>
       <div>
-        <label for="modal_event_type" class="mb-1.5 block text-xs font-medium text-slate-300">Type</label>
-        <select id="modal_event_type" name="event_type"
-          class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 text-xs text-white outline-none focus:border-sky-400/60">
+        <label for="event_type" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">CATEGORY</label>
+        <select id="event_type" name="event_type">
           {% for key, val in event_types.items() %}
           <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
-        <button type="button" onclick="closeEditEventModal()"
-          class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 hover:bg-white/10">Cancel</button>
-        <button type="submit"
-          class="rounded-xl bg-sky-500 px-5 py-2 text-xs font-semibold text-white hover:bg-sky-400">Save
-          Changes</button>
+      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #2a2a2a; padding-top: 10px;">
+        <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
+        <button type="submit" class="btn btn-solid">[+ ADD EVENT]</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Manage Trip Members Modal -->
-<div id="manageMembersModal"
-  class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-  <div class="w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-2xl space-y-4">
-    <div class="flex items-center justify-between border-b border-white/10 pb-3">
-      <div>
-        <h3 class="text-base font-semibold text-white">Manage Trip Group</h3>
-        <p class="text-xs text-slate-400 mt-0.5">Select who belongs to {{ trip.name }} or add new people.</p>
-      </div>
-      <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('hidden')"
-        class="text-slate-400 hover:text-white">✕</button>
+<!-- ═══ MODAL: EDIT EVENT ═══ -->
+<div id="editEventModal" class="modal-backdrop">
+  <div class="modal-content panel-scroll" style="max-width: 440px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
+      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #fff;">EDIT EVENT</span>
+      <button type="button" onclick="closeEditEventModal()" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
-    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" class="space-y-4">
+    <form id="editEventForm" method="post" action="" style="display: flex; flex-direction: column; gap: 12px;">
       <div>
-        <div class="flex items-center justify-between mb-2">
-          <label class="text-xs font-medium text-slate-300 uppercase tracking-wider">Trip Participants</label>
-          <span class="text-[11px] text-slate-400">Check who is on this trip</span>
-        </div>
-        <div class="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+        <label for="modal_event_name" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">EVENT NAME</label>
+        <input id="modal_event_name" name="event_name" type="text" required maxlength="60">
+      </div>
+      <div>
+        <label for="modal_event_type" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">TYPE</label>
+        <select id="modal_event_type" name="event_type">
+          {% for key, val in event_types.items() %}
+          <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #2a2a2a; padding-top: 10px;">
+        <button type="button" onclick="closeEditEventModal()" class="btn btn-dim">CANCEL</button>
+        <button type="submit" class="btn btn-solid">SAVE</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ MODAL: MANAGE MEMBERS ═══ -->
+<div id="manageMembersModal" class="modal-backdrop">
+  <div class="modal-content panel-scroll" style="max-width: 520px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
+      <div>
+        <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #fff;">TRIP ROSTER</span>
+        <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Manage participants for {{ trip.name }}</p>
+      </div>
+      <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
+    </div>
+
+    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 12px;">
+      <div>
+        <label style="display: block; font-size: 10px; color: #666; margin-bottom: 6px;">ACTIVE PARTICIPANTS</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 180px; overflow-y: auto;" class="panel-scroll">
           {% for m in all_members %}
           {% set in_trip = m.id in trip.member_ids if trip.member_ids else true %}
-          <label
-            class="flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-400/40 select-none">
-            <span class="flex items-center gap-1.5 truncate">
-              <span>{{ m.avatar }}</span>
-              <span class="font-medium text-white">{{ m.name }}</span>
-            </span>
-            <input type="checkbox" name="member_ids" value="{{ m.id }}"
-              class="h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-500" {{ 'checked' if in_trip else '' }}>
+          <label class="chip {{ 'active' if in_trip else '' }}" style="justify-content: space-between;">
+            <span>{{ m.avatar }} {{ m.name }}</span>
+            <input type="checkbox" name="member_ids" value="{{ m.id }}" class="sr-only" {{ 'checked' if in_trip else '' }} onchange="this.closest('.chip').classList.toggle('active', this.checked)">
           </label>
           {% endfor %}
         </div>
       </div>
 
-      <div class="border-t border-white/5 pt-3">
-        <label for="trip_modal_new_members" class="mb-1 block text-xs font-medium text-slate-300">+ Add new people to
-          this trip</label>
-        <input id="trip_modal_new_members" name="new_members" type="text"
-          placeholder="e.g. Rahul, Sneha (comma separated)"
-          class="h-9 w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 text-xs text-white outline-none focus:border-sky-400/60 placeholder:text-slate-500">
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 10px;">
+        <label for="trip_modal_new_members" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">+ ADD NEW PEOPLE (COMMA SEPARATED)</label>
+        <input id="trip_modal_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha">
       </div>
 
-      <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
-        <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('hidden')"
-          class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 hover:bg-white/10">Cancel</button>
-        <button type="submit"
-          class="rounded-xl bg-sky-500 px-5 py-2 text-xs font-semibold text-white hover:bg-sky-400">Save Group
-          Members</button>
+      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #2a2a2a; padding-top: 10px;">
+        <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
+        <button type="submit" class="btn btn-solid">SAVE ROSTER</button>
       </div>
     </form>
   </div>
@@ -634,19 +447,15 @@
   document.querySelectorAll('.toggle-items-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const drawer = btn.nextElementSibling;
-      const chevron = btn.querySelector('.chevron');
-      const textSpan = btn.querySelector('.btn-text');
       const count = btn.dataset.count || '';
       if (drawer) {
         const isHidden = drawer.classList.contains('hidden');
         drawer.classList.toggle('hidden');
+        const textSpan = btn.querySelector('.btn-text');
         if (textSpan) {
           textSpan.textContent = isHidden
-            ? `📋 Hide Items Breakdown (${count})`
-            : `📋 View Items Breakdown (${count})`;
-        }
-        if (chevron) {
-          chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            ? `📋 HIDE DISHES (${count})`
+            : `📋 VIEW DISHES (${count})`;
         }
       }
     });
@@ -664,16 +473,12 @@
     if (nameInput) nameInput.value = eventName;
     if (typeSelect) typeSelect.value = eventType;
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    modal.classList.add('active');
   }
 
   function closeEditEventModal() {
     const modal = document.getElementById('editEventModal');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
+    if (modal) modal.classList.remove('active');
   }
 
   const editModal = document.getElementById('editEventModal');
@@ -683,7 +488,7 @@
     });
   }
 
-  // ── Trip-Level & Expense-Level Detailed Breakdown Copy ──
+  // ── ASCII Thermal Receipt Layout Engine ──
   const tripData = JSON.parse(document.getElementById('tripFullData')?.textContent || '{}');
 
   function fmtMoney(n) {
@@ -691,7 +496,6 @@
     return '₹' + val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
-  // ── ASCII Thermal Receipt Layout Engine ──
   const W = 42;
   const padC = (str) => {
     const s = String(str).trim();
@@ -708,15 +512,17 @@
   };
   const divider = (ch = '-') => ch.repeat(W);
 
-  function copyToClipboard(text, btnElement, successLabel = 'Copied ASCII Receipt!') {
+  function copyToClipboard(text, btnElement, successLabel = 'COPIED ASCII!') {
     if (!text) return;
     const originalText = btnElement.textContent;
     const doCopy = () => {
       btnElement.textContent = successLabel;
-      btnElement.classList.add('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+      btnElement.style.background = '#0A8F20';
+      btnElement.style.color = '#fff';
       setTimeout(() => {
         btnElement.textContent = originalText;
-        btnElement.classList.remove('!border-emerald-400/60', '!bg-emerald-400/20', '!text-emerald-200');
+        btnElement.style.background = '';
+        btnElement.style.color = '';
       }, 2200);
     };
 
@@ -735,10 +541,8 @@
       ta.style.position = 'fixed';
       ta.style.left = '-9999px';
       ta.style.top = '0';
-      ta.style.fontSize = '12pt';
       document.body.appendChild(ta);
       ta.select();
-      ta.setSelectionRange(0, text.length);
       document.execCommand('copy');
       document.body.removeChild(ta);
       if (callback) callback();
@@ -753,7 +557,6 @@
     const events = tripData.events || [];
     const balances = tripData.balances || [];
     const transactions = tripData.transactions || [];
-    const members = tripData.members || [];
 
     const lines = [];
     lines.push(divider('='));
@@ -844,7 +647,6 @@
           const upiClean = tx.to_upi.trim();
           const amtStr = parseFloat(tx.amount).toFixed(2);
           const payLink = `upi://pay?pa=${encodeURIComponent(upiClean)}&pn=${encodeURIComponent(tx.to)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(trip.name + ' Settlement')}`;
-          lines.push(`   UPI: ${upiClean}`);
           lines.push(`   Pay Link: [Pay via UPI](${payLink})`);
         }
       });
@@ -930,12 +732,12 @@
     return lines.join('\n');
   }
 
-  // Hook up Copy Trip Breakdown Button
+  // Buttons
   const copyTripBtn = document.getElementById('copyTripBreakdownBtn');
   if (copyTripBtn) {
     copyTripBtn.addEventListener('click', () => {
       const text = generateTripTextBreakdown();
-      copyToClipboard(text, copyTripBtn, 'Copied ASCII Receipt!');
+      copyToClipboard(text, copyTripBtn);
     });
   }
 
@@ -943,16 +745,15 @@
   if (copySettlementCardBtn) {
     copySettlementCardBtn.addEventListener('click', () => {
       const text = generateTripTextBreakdown();
-      copyToClipboard(text, copySettlementCardBtn, 'Copied ASCII Receipt!');
+      copyToClipboard(text, copySettlementCardBtn);
     });
   }
 
-  // Hook up Copy Expense Buttons on cards
   document.querySelectorAll('.copy-exp-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const expId = btn.dataset.expenseId;
       const text = generateSingleExpenseBreakdown(expId);
-      copyToClipboard(text, btn, 'Copied ASCII Receipt!');
+      copyToClipboard(text, btn);
     });
   });
 
@@ -968,7 +769,7 @@
   const eventScanNameInput = document.getElementById('eventScanNameInput');
   const eventScanTypeSelect = document.getElementById('eventScanTypeSelect');
   const createEventAndSplitBtn = document.getElementById('createEventAndSplitBtn');
-  const applyToEventFormBtn = document.getElementById('applyToEventFormBtn');
+  const autoSaveEventExpenseBtn = document.getElementById('autoSaveEventExpenseBtn');
   const cancelEventScanBtn = document.getElementById('cancelEventScanBtn');
 
   let lastEventScannedData = null;
@@ -979,11 +780,8 @@
       return;
     }
 
-    if (eventScanLoading) {
-      eventScanLoading.classList.remove('hidden');
-      eventScanLoading.classList.add('flex');
-    }
-    if (eventScanPreview) eventScanPreview.classList.add('hidden');
+    if (eventScanLoading) eventScanLoading.style.display = 'flex';
+    if (eventScanPreview) eventScanPreview.style.display = 'none';
 
     const formData = new FormData();
     formData.append('receipt', file);
@@ -1003,17 +801,12 @@
     } catch (err) {
       alert(err.message || 'Failed to scan receipt image.');
     } finally {
-      if (eventScanLoading) {
-        eventScanLoading.classList.add('hidden');
-        eventScanLoading.classList.remove('flex');
-      }
+      if (eventScanLoading) eventScanLoading.style.display = 'none';
     }
   }
 
   if (eventReceiptDropzone && eventReceiptFileInput) {
-    eventReceiptDropzone.addEventListener('click', () => {
-      eventReceiptFileInput.click();
-    });
+    eventReceiptDropzone.addEventListener('click', () => eventReceiptFileInput.click());
 
     eventReceiptFileInput.addEventListener('change', () => {
       if (!eventReceiptFileInput.files.length) return;
@@ -1024,7 +817,8 @@
       eventReceiptDropzone.addEventListener(eventName, (e) => {
         e.preventDefault();
         e.stopPropagation();
-        eventReceiptDropzone.classList.add('border-indigo-400', 'bg-indigo-500/15', 'scale-[1.01]');
+        eventReceiptDropzone.style.borderColor = '#0cba2a';
+        eventReceiptDropzone.style.background = '#141414';
       });
     });
 
@@ -1032,7 +826,8 @@
       eventReceiptDropzone.addEventListener(eventName, (e) => {
         e.preventDefault();
         e.stopPropagation();
-        eventReceiptDropzone.classList.remove('border-indigo-400', 'bg-indigo-500/15', 'scale-[1.01]');
+        eventReceiptDropzone.style.borderColor = '#0A8F20';
+        eventReceiptDropzone.style.background = '#0a0a0a';
       });
     });
 
@@ -1060,7 +855,6 @@
   function displayScannedEventPreview(data) {
     if (!eventScanPreview) return;
 
-    // Detect type
     let inferredType = 'other';
     const cat = data.category || 'dining';
     if (cat === 'dining') {
@@ -1090,19 +884,16 @@
       eventScanTypeSelect.value = inferredType;
     }
 
-    eventScanPreview.classList.remove('hidden');
+    eventScanPreview.style.display = 'flex';
   }
-
-  const autoSaveEventExpenseBtn = document.getElementById('autoSaveEventExpenseBtn');
 
   if (cancelEventScanBtn) {
     cancelEventScanBtn.addEventListener('click', () => {
-      if (eventScanPreview) eventScanPreview.classList.add('hidden');
+      if (eventScanPreview) eventScanPreview.style.display = 'none';
       if (eventReceiptFileInput) eventReceiptFileInput.value = '';
     });
   }
 
-  // 1. One-click Auto-Save Event and Expense Directly
   if (autoSaveEventExpenseBtn) {
     autoSaveEventExpenseBtn.addEventListener('click', async () => {
       if (!lastEventScannedData) return;
@@ -1110,7 +901,7 @@
       const eventType = eventScanTypeSelect?.value || 'other';
 
       autoSaveEventExpenseBtn.disabled = true;
-      autoSaveEventExpenseBtn.textContent = 'Saving Event & Expenses...';
+      autoSaveEventExpenseBtn.textContent = 'SAVING...';
 
       try {
         const resp = await fetch('/trip/{{ trip.id }}/event/new', {
@@ -1135,12 +926,11 @@
       } catch (e) {
         alert(e.message || 'Failed to auto-save event.');
         autoSaveEventExpenseBtn.disabled = false;
-        autoSaveEventExpenseBtn.textContent = '⚡ Save Event & Expenses Directly';
+        autoSaveEventExpenseBtn.textContent = '⚡ SAVE DIRECTLY';
       }
     });
   }
 
-  // 2. Open Pre-filled Bill Form to Review & Edit Split
   if (createEventAndSplitBtn) {
     createEventAndSplitBtn.addEventListener('click', async () => {
       if (!lastEventScannedData) return;
@@ -1148,7 +938,7 @@
       const eventType = eventScanTypeSelect?.value || 'other';
 
       createEventAndSplitBtn.disabled = true;
-      createEventAndSplitBtn.textContent = 'Creating Event...';
+      createEventAndSplitBtn.textContent = 'CREATING...';
 
       try {
         const resp = await fetch('/trip/{{ trip.id }}/event/new', {
@@ -1167,7 +957,6 @@
           throw new Error(res.error || 'Could not create event.');
         }
 
-        // Store pending scan in BOTH sessionStorage and localStorage with matched event_id
         const scanPayload = JSON.stringify({
           ...lastEventScannedData,
           event_id: res.event.id,
@@ -1183,7 +972,7 @@
       } catch (e) {
         alert(e.message || 'Failed to auto-create event.');
         createEventAndSplitBtn.disabled = false;
-        createEventAndSplitBtn.textContent = '✏️ Open Bill & Edit Split →';
+        createEventAndSplitBtn.textContent = 'ITEMIZE →';
       }
     });
   }

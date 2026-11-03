@@ -1,126 +1,335 @@
 <!doctype html>
-<html lang="en" class="h-full bg-slate-950" style="color-scheme: dark;">
+<html lang="en" style="color-scheme: dark;">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}TallyUp{% endblock %}</title>
-  <meta name="description" content="{% block meta_desc %}Smart bill splitting with trip tracking, restaurant mode, and Zomato Dineout support.{% endblock %}">
+  <meta name="description" content="{% block meta_desc %}Smart bill splitting with trip tracking, restaurant mode, and receipt scanning.{% endblock %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['ui-sans-serif','system-ui','-apple-system','BlinkMacSystemFont','Segoe UI','sans-serif'],
-            mono: ['"Courier Prime"', '"Space Mono"', '"SF Mono"', 'Menlo', 'Monaco', '"Courier New"', 'Courier', 'monospace']
+            mono: ['"IBM Plex Mono"', '"JetBrains Mono"', '"Courier New"', 'Courier', 'monospace'],
           },
-          boxShadow: {
-            glow: '0 18px 50px rgba(14, 165, 233, 0.18)',
-            'glow-emerald': '0 18px 50px rgba(16, 185, 129, 0.15)',
-            'glow-amber': '0 18px 50px rgba(245, 158, 11, 0.12)',
+          colors: {
+            bg:      '#0a0a0a',
+            surface: '#141414',
+            panel:   '#1a1a1a',
+            border:  '#2a2a2a',
+            dim:     '#666666',
+            accent:  '#0A8F20',
+            warn:    '#d97706',
+            danger:  '#dc2626',
           }
         }
       }
     }
   </script>
   <style>
-    html, body {
-      color-scheme: dark;
+    /* ─── RESET ─── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; color-scheme: dark; }
+    html { height: 100%; overflow: hidden; }
+    body { height: 100%; overflow: hidden; }
+
+    /* ─── TYPOGRAPHY ─── */
+    body {
+      font-family: 'IBM Plex Mono', 'JetBrains Mono', 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #d4d4d4;
+      background: #0a0a0a;
+      -webkit-font-smoothing: antialiased;
     }
-    .fade-in { animation: fadeIn 0.3s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .slide-up { animation: slideUp 0.4s ease-out; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .mode-tab { transition: all 0.25s ease; }
-    .mode-tab.active { background: rgba(14, 165, 233, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #7dd3fc; }
-    .dineout-field { transition: all 0.3s ease; }
+
+    /* ─── LINKS ─── */
+    a { color: #0A8F20; text-decoration: none; }
+    a:hover { color: #0cba2a; }
+
+    /* ─── FORMS ─── */
+    input, select, textarea, button {
+      font-family: inherit;
+      font-size: inherit;
+    }
+    input[type="text"], input[type="number"], input[type="date"],
+    input[type="email"], input[type="url"], input[type="tel"],
+    select, textarea {
+      background: #0a0a0a;
+      border: 1px solid #2a2a2a;
+      color: #d4d4d4;
+      padding: 7px 10px;
+      border-radius: 0;
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #0A8F20;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #444;
+    }
     input[type="number"]::-webkit-inner-spin-button,
     input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type="number"] { -moz-appearance: textfield; }
-    /* Date input dark styling with crisp high-contrast white calendar icon */
-    input[type="date"] {
-      color-scheme: dark !important;
-    }
+
+    /* ─── DATE INPUT ─── */
+    input[type="date"] { color-scheme: dark !important; }
     input[type="date"]::-webkit-calendar-picker-indicator {
       cursor: pointer;
       opacity: 1 !important;
-      filter: invert(1) brightness(2) !important;
-      padding: 4px;
-      border-radius: 6px;
-      transition: all 0.2s ease;
+      filter: invert(0.35) sepia(1) saturate(5) hue-rotate(90deg) brightness(0.9) !important;
+      padding: 2px;
     }
     input[type="date"]::-webkit-calendar-picker-indicator:hover {
-      background-color: rgba(56, 189, 248, 0.25);
+      filter: invert(0.4) sepia(1) saturate(8) hue-rotate(90deg) brightness(1.1) !important;
     }
-      border-radius: 6px;
-      transition: all 0.2s ease;
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px dashed #0A8F20;
+      color: #0A8F20;
+      background: transparent;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-      background-color: rgba(56, 189, 248, 0.25);
+    .btn:hover {
+      background: #0A8F20;
+      color: #000;
+      border-style: solid;
     }
+    .btn-sm { padding: 4px 10px; font-size: 10px; }
+    .btn-warn { border-color: #d97706; color: #d97706; }
+    .btn-warn:hover { background: #d97706; color: #000; }
+    .btn-danger { border-color: #dc2626; color: #dc2626; }
+    .btn-danger:hover { background: #dc2626; color: #fff; }
+    .btn-dim { border-color: #444; color: #666; }
+    .btn-dim:hover { background: #333; color: #d4d4d4; border-color: #666; }
+    .btn-solid {
+      border-style: solid;
+      background: #0A8F20;
+      color: #000;
+    }
+    .btn-solid:hover {
+      background: #0cba2a;
+    }
+
+    /* ─── CARDS / PANELS ─── */
+    .card {
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      padding: 16px;
+    }
+    .card-header {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    /* ─── ASCII DIVIDERS ─── */
+    .divider {
+      border: none;
+      border-top: 1px solid #2a2a2a;
+      margin: 12px 0;
+    }
+    .divider-dashed {
+      border: none;
+      border-top: 1px dashed #2a2a2a;
+      margin: 12px 0;
+    }
+
+    /* ─── SCROLLBAR (for internal panel scroll only) ─── */
+    .panel-scroll::-webkit-scrollbar { width: 4px; }
+    .panel-scroll::-webkit-scrollbar-track { background: transparent; }
+    .panel-scroll::-webkit-scrollbar-thumb { background: #2a2a2a; }
+    .panel-scroll::-webkit-scrollbar-thumb:hover { background: #444; }
+    .panel-scroll { scrollbar-width: thin; scrollbar-color: #2a2a2a transparent; }
+
+    /* ─── MODAL OVERLAY ─── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-content {
+      background: #141414;
+      border: 1px solid #2a2a2a;
+      width: 100%;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+    }
+    .modal-content.panel-scroll {}
+
+    /* ─── TOAST NOTIFICATIONS ─── */
+    .toast {
+      border: 1px solid #2a2a2a;
+      background: #141414;
+      color: #d4d4d4;
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+    .toast-success { border-color: #0A8F20; color: #0A8F20; }
+    .toast-error { border-color: #dc2626; color: #dc2626; }
+
+    /* ─── STATUS BADGES ─── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border: 1px solid #2a2a2a;
+    }
+    .badge-green { border-color: #0A8F20; color: #0A8F20; }
+    .badge-amber { border-color: #d97706; color: #d97706; }
+    .badge-red { border-color: #dc2626; color: #dc2626; }
+    .badge-dim { border-color: #333; color: #666; }
+
+    /* ─── RECEIPT FONT ─── */
     .receipt-font {
-      font-family: 'Courier Prime', 'Space Mono', 'SF Mono', Menlo, Monaco, 'Courier New', Courier, monospace;
+      font-family: 'IBM Plex Mono', 'Courier New', Courier, monospace;
       font-variant-numeric: tabular-nums;
-      letter-spacing: -0.01em;
+      letter-spacing: 0;
     }
+
+    /* ─── MODE TABS ─── */
+    .mode-tab {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid #2a2a2a;
+      color: #666;
+      background: transparent;
+      padding: 6px 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .mode-tab:hover { color: #d4d4d4; border-color: #444; }
+    .mode-tab.active {
+      color: #0A8F20;
+      border-color: #0A8F20;
+      background: rgba(10, 143, 32, 0.08);
+    }
+
+    /* ─── CHECKBOX / TOGGLE CHIPS ─── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 4px 10px;
+      border: 1px solid #2a2a2a;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .chip:hover { border-color: #444; color: #999; }
+    .chip.active { border-color: #0A8F20; color: #0A8F20; background: rgba(10, 143, 32, 0.08); }
+
+    /* ─── TOOLTIP ─── */
     .tooltip-container { position: relative; }
     .tooltip-container .tooltip {
       visibility: hidden; opacity: 0; position: absolute; bottom: 100%; left: 50%;
-      transform: translateX(-50%) translateY(4px); padding: 6px 10px; border-radius: 8px;
-      background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.1);
-      color: #cbd5e1; font-size: 0.75rem; white-space: nowrap; z-index: 50;
-      transition: all 0.2s ease; pointer-events: none;
+      transform: translateX(-50%); padding: 4px 8px;
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      color: #999; font-size: 10px; white-space: nowrap; z-index: 50;
+      transition: opacity 0.15s ease; pointer-events: none;
     }
-    .tooltip-container:hover .tooltip { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(-4px); }
+    .tooltip-container:hover .tooltip { visibility: visible; opacity: 1; }
+
+    /* ─── DINEOUT FIELD ─── */
+    .dineout-field { transition: all 0.15s ease; }
+
+    /* ─── LAYOUT HELPERS ─── */
+    .viewport { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .content-area { flex: 1; overflow: hidden; }
+
+    /* ─── SUBTLE ANIMATIONS (fast, no glow) ─── */
+    .fade-in { animation: fadeIn 0.15s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ─── LABEL STYLE ─── */
+    label, .label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 500;
+      color: #666;
+    }
   </style>
   {% block head %}{% endblock %}
 </head>
-<body class="min-h-full {% block body_bg %}bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_36%),linear-gradient(180deg,#020617_0%,#0f172a_100%)]{% endblock %} text-slate-100 font-sans">
-  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-white">Skip to content</a>
+<body class="viewport">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 btn btn-sm">Skip to content</a>
 
   <!-- Loader -->
-  <div id="pageLoader" class="pointer-events-none fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/55 backdrop-blur-sm">
-    <div class="rounded-2xl border border-white/10 bg-slate-900/90 px-5 py-4 shadow-2xl">
-      <div class="flex items-center gap-3">
-        <div class="h-3 w-3 animate-pulse rounded-full bg-sky-400"></div>
-        <p class="text-sm text-slate-200">Working on it…</p>
+  <div id="pageLoader" class="modal-backdrop" style="z-index:99">
+    <div class="card" style="padding: 12px 20px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="color:#0A8F20;">▪</span>
+        <span style="font-size:12px; color:#666;">PROCESSING...</span>
       </div>
     </div>
   </div>
 
-  <!-- Nav -->
+  <!-- ═══ NAV ═══ -->
   {% block nav %}
-  <nav class="mx-auto max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
-      <a href="{{ url_for('dashboard') }}" class="flex items-center gap-2.5 text-white transition hover:text-sky-300">
-        <span class="text-xl">💸</span>
-        <span class="text-lg font-semibold tracking-tight">TallyUp</span>
-      </a>
-      <div class="flex items-center gap-2">
-        {% if session.get('members') %}
-        <a href="{{ url_for('dashboard') }}" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-sky-400/40 hover:bg-sky-400/10">Trips</a>
-        <a href="{{ url_for('settle') }}" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-emerald-400/40 hover:bg-emerald-400/10">Settle All</a>
-        <form method="post" action="{{ url_for('reset') }}" class="inline">
-          <button type="submit" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-rose-400/40 hover:bg-rose-400/10">Reset</button>
-        </form>
-        {% endif %}
-      </div>
+  <nav style="border-bottom: 1px solid #2a2a2a; padding: 0 16px; height: 36px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+    <a href="{{ url_for('dashboard') }}" style="display:flex; align-items:center; gap:8px; color:#d4d4d4; text-decoration:none;">
+      <span style="color:#0A8F20; font-weight:600; font-size:13px; letter-spacing:0.05em;">TALLYUP</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:2px;">
+      {% if session.get('members') %}
+      <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px;">TRIPS</a>
+      <a href="{{ url_for('settle') }}" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px;">SETTLE</a>
+      <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
+        <button type="submit" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px;">RESET</button>
+      </form>
+      {% endif %}
     </div>
   </nav>
   {% endblock %}
 
   <!-- Flash Messages -->
-  <div id="toastStack" class="fixed right-4 top-4 z-40 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3">
+  <div id="toastStack" style="position:fixed; right:16px; top:8px; z-index:60; display:flex; flex-direction:column; gap:6px; max-width:320px;">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="toast rounded-2xl border px-4 py-3 text-sm shadow-xl fade-in {{ 'border-rose-400/30 bg-rose-400/15 text-rose-50' if category == 'error' else 'border-emerald-400/30 bg-emerald-400/15 text-emerald-50' }}">{{ message }}</div>
+          <div class="toast fade-in {{ 'toast-error' if category == 'error' else 'toast-success' }}">{{ message }}</div>
         {% endfor %}
       {% endif %}
     {% endwith %}
   </div>
 
-  <main id="main" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+  <main id="main" class="content-area">
     {% block content %}{% endblock %}
   </main>
 
@@ -128,9 +337,9 @@
     // Auto-dismiss toasts
     document.querySelectorAll('.toast').forEach((toast, index) => {
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-x-4');
-        toast.style.transition = 'all 220ms ease';
-        setTimeout(() => toast.remove(), 240);
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.15s ease';
+        setTimeout(() => toast.remove(), 160);
       }, 2800 + (index * 200));
     });
 
@@ -138,7 +347,7 @@
     document.querySelectorAll('form').forEach(form => {
       form.addEventListener('submit', () => {
         const loader = document.getElementById('pageLoader');
-        if (loader) { loader.classList.remove('hidden'); loader.classList.add('flex'); }
+        if (loader) loader.classList.add('active');
       });
     });
   </script>
