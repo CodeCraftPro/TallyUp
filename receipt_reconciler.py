@@ -53,11 +53,11 @@ def reconcile_receipt(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     # PHASE 1: Data Sanitization
     # ---------------------------------------------------------------------------
     subtotal = sanitize_money(raw_data.get("subtotal"))
-    grand_total = sanitize_money(raw_data.get("total_bill") or raw_data.get("grand_total"))
+    grand_total = sanitize_money(raw_data.get("total_bill") or raw_data.get("grand_total") or raw_data.get("total"))
     service_charge = sanitize_money(raw_data.get("service_charge"))
     cgst = sanitize_money(raw_data.get("cgst"))
     sgst = sanitize_money(raw_data.get("sgst"))
-    total_tax = sanitize_money(raw_data.get("total_tax"))
+    total_tax = sanitize_money(raw_data.get("total_tax") or raw_data.get("tax_amount") or raw_data.get("taxes") or raw_data.get("tax"))
     fees = sanitize_money(raw_data.get("convenience_fee") or raw_data.get("fees"))
     discount = sanitize_money(raw_data.get("discount") or raw_data.get("discount_amount"))
     round_off = sanitize_money(raw_data.get("round_off"))
@@ -69,7 +69,7 @@ def reconcile_receipt(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         name = str(it.get("name") or "Item").strip()
         # Clean currency characters and leading numbers from name
         name = re.sub(r'^[0-9]+[\.\-\)]\s*', '', name).strip()
-        qty_raw = it.get("qty")
+        qty_raw = it.get("qty") if it.get("qty") is not None else it.get("quantity")
         try:
             qty = float(qty_raw) if qty_raw is not None and str(qty_raw).strip() != "" else None
             if qty is not None and qty <= 0:
@@ -77,8 +77,8 @@ def reconcile_receipt(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         except (ValueError, TypeError):
             qty = None
 
-        price = sanitize_money(it.get("price"), default=None)
-        total = sanitize_money(it.get("total"), default=None)
+        price = sanitize_money(it.get("price") or it.get("unit_price") or it.get("rate"), default=None)
+        total = sanitize_money(it.get("total") or it.get("amount") or it.get("total_price"), default=None)
 
         # If total is missing but price was passed as item amount, assign
         if total is None and price is not None and (qty is None or qty == 1):

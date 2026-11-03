@@ -79,6 +79,26 @@ def before_request_hook():
 # Helpers
 # ---------------------------------------------------------------------------
 
+def make_member_dict(name, member_id=None, upi_id=""):
+    clean_name = name.strip()
+    parts = [p for p in clean_name.split() if p]
+    if len(parts) >= 2:
+        tag = (parts[0][0] + parts[1][0]).upper()
+    elif parts and len(parts[0]) >= 2:
+        tag = parts[0][:2].upper()
+    elif parts:
+        tag = (parts[0] + "X")[:2].upper()
+    else:
+        tag = "U"
+    return {
+        "id": member_id or str(uuid4()),
+        "name": clean_name,
+        "avatar": f"[{tag}]",
+        "tag": tag,
+        "upi_id": upi_id or "",
+    }
+
+
 def money(value):
     if not isinstance(value, Decimal):
         value = Decimal(str(value))
@@ -631,9 +651,9 @@ def simplify_transactions(balance_rows):
     for row in balance_rows:
         amt = money(row["balance"])
         if amt > Decimal("0.02"):
-            creditors.append({"id": row["id"], "name": row["name"], "avatar": row.get("avatar", "👤"), "amount": amt})
+            creditors.append({"id": row["id"], "name": row["name"], "avatar": row.get("avatar", "[U]"), "amount": amt})
         elif amt < Decimal("-0.02"):
-            debtors.append({"id": row["id"], "name": row["name"], "avatar": row.get("avatar", "👤"), "amount": abs(amt)})
+            debtors.append({"id": row["id"], "name": row["name"], "avatar": row.get("avatar", "[U]"), "amount": abs(amt)})
 
     creditors.sort(key=lambda x: x["amount"], reverse=True)
     debtors.sort(key=lambda x: x["amount"], reverse=True)
@@ -647,10 +667,10 @@ def simplify_transactions(balance_rows):
             transfers.append({
                 "from_id": debtors[i]["id"],
                 "from": debtors[i]["name"],
-                "from_avatar": debtors[i].get("avatar", "👤"),
+                "from_avatar": debtors[i].get("avatar", "[U]"),
                 "to_id": creditors[j]["id"],
                 "to": creditors[j]["name"],
-                "to_avatar": creditors[j].get("avatar", "👤"),
+                "to_avatar": creditors[j].get("avatar", "[U]"),
                 "amount": pay_amount,
                 "key": transfer_key,
             })
@@ -722,6 +742,8 @@ def inject_globals():
     return {
         "event_types": EVENT_TYPES,
         "all_app_members": get_members(),
+        "all_app_groups": get_groups(),
+        "all_app_trips": get_trips(),
     }
 
 
@@ -832,12 +854,8 @@ def setup():
             return redirect(url_for("setup"))
 
         new_members = []
-        for idx, name in enumerate(names):
-            new_members.append({
-                "id": str(uuid4()),
-                "name": name,
-                "avatar": AVATARS[(len(members) + idx) % len(AVATARS)],
-            })
+        for name in names:
+            new_members.append(make_member_dict(name))
         # NEVER wipe existing trips or data!
         save_members(members + new_members)
         return redirect(url_for("dashboard"))
@@ -871,15 +889,10 @@ def create_trip():
     new_names_raw = request.form.get("new_members", "").strip()
     if new_names_raw:
         new_names = [n.strip() for n in new_names_raw.split(",") if n.strip()]
-        for idx, n in enumerate(new_names):
-            new_id = str(uuid4())
-            new_m = {
-                "id": new_id,
-                "name": n,
-                "avatar": AVATARS[(len(all_members) + idx) % len(AVATARS)],
-            }
+        for n in new_names:
+            new_m = make_member_dict(n)
             all_members.append(new_m)
-            member_ids.append(new_id)
+            member_ids.append(new_m["id"])
         save_members(all_members)
 
     # Default to all members if none selected
@@ -936,14 +949,9 @@ def manage_trip_members(trip_id):
                 if existing["id"] not in selected_ids:
                     selected_ids.append(existing["id"])
             else:
-                new_id = str(uuid4())
-                new_m = {
-                    "id": new_id,
-                    "name": n,
-                    "avatar": AVATARS[(len(all_members) + idx) % len(AVATARS)],
-                }
+                new_m = make_member_dict(n)
                 all_members.append(new_m)
-                selected_ids.append(new_id)
+                selected_ids.append(new_m["id"])
         save_members(all_members)
 
     if not selected_ids:
@@ -982,6 +990,65 @@ def manage_trip_members(trip_id):
     update_trip(trip)
     flash(f"Trip roster updated ({len(selected_ids)} members)!", "success")
     return redirect(url_for("trip_view", trip_id=trip_id))
+
+
+@app.route("/settings/groups", methods=["POST"])
+def update_groups_settings():
+    init_state()
+    action = request.form.get("action", "").strip()
+    groups = get_groups()
+    trips = get_trips()
+
+    if action == "rename":
+        group_id = request.form.get("group_id", "").strip()
+        new_name = request.form.get("group_name", "").strip()
+        if group_id and new_name:
+            old_name = None
+            for g in groups:
+                if g["id"] == group_id:
+                    old_name = g.get("name")
+                    g["name"] = new_name
+                    break
+            if old_name:
+                for t in trips:
+                    if t.get("group_name") == old_name:
+                        t["group_name"] = new_name
+                save_trips(trips)
+            save_groups(groups)
+            flash(f'Group renamed to "{new_name}".', "success")
+
+    elif action == "set_trip_group":
+        trip_id = request.form.get("trip_id", "").strip()
+        group_name = request.form.get("group_name", "").strip()
+        for t in trips:
+            if t["id"] == trip_id:
+                t["group_name"] = group_name
+                break
+        save_trips(trips)
+        flash("Trip group classification updated.", "success")
+
+    elif action == "create":
+        group_name = request.form.get("group_name", "").strip()
+        selected_mids = request.form.getlist("member_ids")
+        if not selected_mids:
+            all_m = get_members()
+            selected_mids = [m["id"] for m in all_m]
+        if group_name:
+            groups.append({
+                "id": f"grp_{uuid4().hex[:8]}",
+                "name": group_name,
+                "member_ids": selected_mids,
+            })
+            save_groups(groups)
+            flash(f'Created group "{group_name}".', "success")
+
+    elif action == "delete":
+        group_id = request.form.get("group_id", "").strip()
+        groups = [g for g in groups if g["id"] != group_id]
+        save_groups(groups)
+        flash("Group removed.", "success")
+
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 @app.route("/settings/upi", methods=["POST"])
@@ -1059,10 +1126,10 @@ def trip_view(trip_id):
                     "price": money(it.get("price", "0")),
                     "paid_by": it_payer_id,
                     "paid_by_name": it_payer.get("name", ""),
-                    "paid_by_avatar": it_payer.get("avatar", "👤"),
+                    "paid_by_avatar": it_payer.get("avatar", "[U]"),
                     "is_outside": it.get("is_outside", False),
                     "consumer_names": [mmap.get(cid, {}).get("name", "?") for cid in c_ids],
-                    "consumer_avatars": [mmap.get(cid, {}).get("avatar", "👤") for cid in c_ids],
+                    "consumer_avatars": [mmap.get(cid, {}).get("avatar", "[U]") for cid in c_ids],
                 })
             ev["enriched_items"] = enriched_items
             ev["has_items"] = bool(enriched_items)
@@ -1813,9 +1880,9 @@ def settle():
                     "from_id": from_id,
                     "to_id": to_id,
                     "from_name": s_data.get("from_name") or from_mem.get("name", "Unknown"),
-                    "from_avatar": from_mem.get("avatar", "👤"),
+                    "from_avatar": from_mem.get("avatar", "[U]"),
                     "to_name": s_data.get("to_name") or to_mem.get("name", "Unknown"),
-                    "to_avatar": to_mem.get("avatar", "👤"),
+                    "to_avatar": to_mem.get("avatar", "[U]"),
                     "amount": money(s_data.get("amount", "0")),
                     "settled_at": s_data.get("settled_at", ""),
                 })
@@ -1937,7 +2004,7 @@ def cleanup_members():
 @app.post("/reset")
 def reset():
     session.clear()
-    save_db({"members": [], "trips": []})
+    save_db({"members": [], "trips": [], "groups": []})
     flash("Fresh slate. Ready for a new split.", "success")
     return redirect(url_for("setup"))
 
@@ -2037,7 +2104,7 @@ if __name__ == "__main__":
 
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         print(f"\n{'='*56}")
-        print(f" 🚀 TallyUp is running at: http://127.0.0.1:{port}")
+        print(f" [*] TallyUp is running at: http://127.0.0.1:{port}")
         print(f"{'='*56}\n")
 
     app.run(host="127.0.0.1", port=port, debug=True)

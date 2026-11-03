@@ -531,33 +531,49 @@ def extract_items(boxes, lines, grand_total, subtotal):
     # Associate left-column text with each price row
     items = []
     for i, pr in enumerate(dedup_prices):
-        # An item row begins just above its price row (pr["yc"] - 15) and extends
-        # down to just before the next item's price row (next_pr["yc"] - 15).
-        top_bound = (pr["yc"] - 15) if i > 0 else 0
-        bottom_bound = (dedup_prices[i+1]["yc"] - 15) if i < len(dedup_prices) - 1 else 99999
+        # Precise midpoint vertical bounds between consecutive price items
+        if i > 0:
+            top_bound = (dedup_prices[i-1]["yc"] + pr["yc"]) / 2.0
+        else:
+            top_bound = 0
+
+        if i < len(dedup_prices) - 1:
+            bottom_bound = (pr["yc"] + dedup_prices[i+1]["yc"]) / 2.0
+        else:
+            bottom_bound = 99999
+
+        # Collect all boxes belonging to this line item slice
+        row_boxes = [b for b in item_boxes if top_bound <= b["yc"] < bottom_bound]
+        # Sort in reading order (top-to-bottom, left-to-right)
+        row_boxes.sort(key=lambda b: (round(b["yc"] / 8.0), b["xmin"]))
 
         name_parts = []
-        for b in item_boxes:
-            if b["xc"] <= (x_thresh + 20):
-                # Filter out pure small numbers (e.g. stray table/kot numbers '16', '1')
-                if b["text"].strip().isdigit() and len(b["text"].strip()) <= 2:
-                    continue
-                if b["yc"] < top_bound or b["yc"] >= bottom_bound:
-                    continue
-                name_parts.append(b["text"])
+        for b in row_boxes:
+            t = b["text"].strip()
+            # Skip pure price boxes
+            if re.match(r'^\d+\.\d{2}$', t):
+                continue
+            # Skip pure small integer quantity or kot numbers
+            if t.isdigit() and len(t) <= 2:
+                continue
+            # Skip header words that might bleed into row
+            if re.match(r'(?i)^(?:item|particulars|description|qty|amount|price|rate)$', t):
+                continue
+            name_parts.append(t)
 
         name = " ".join(name_parts).strip()
         # Clean leading item numbering or stray digits
-        name = re.sub(r'^\d+[\s\.\-]+', '', name).strip()
+        name = re.sub(r'^[#0-9]+[\.\-\)\s]+\s*', '', name).strip()
         name = re.sub(r'[\d\.\s]+$', '', name).strip()
-        if not name:
-            name = f"Item {i+1}"
+        name = re.sub(r'(?i)[₹$€£]|rs\.?|/\-', '', name).strip()
+        name = re.sub(r'\s+', ' ', name).strip()
 
-        # Clean title casing
-        name = re.sub(r'\s+', ' ', name).title()
+        if not name or len(name) < 2:
+            name = f"Item {i+1}"
+        else:
+            name = name.title()
 
         # Extract quantities and dual prices on the same line if present
-        row_boxes = [b for b in item_boxes if top_bound <= b["yc"] < bottom_bound]
         detected_prices = []
         for b in row_boxes:
             for m in re.findall(r'(\d+(?:\.\d{2}))', b["text"]):

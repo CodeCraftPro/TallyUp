@@ -10,7 +10,8 @@
       <div>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <a href="{{ url_for('dashboard') }}" class="btn btn-dim btn-sm">← DASHBOARD</a>
-          <h1 style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: 0.05em; text-transform: uppercase; margin: 0;">
+          <h1
+            style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: 0.05em; text-transform: uppercase; margin: 0;">
             {{ trip.name }}
           </h1>
           {% if trip.date %}
@@ -29,7 +30,8 @@
             <span style="color: #0A8F20; font-weight: 700;">{{ m|ascii_avatar }}</span> {{ m.name }}
           </span>
           {% endfor %}
-          <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('active')" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
+          <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('active')"
+            class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
             + EDIT ROSTER
           </button>
         </div>
@@ -40,14 +42,16 @@
         <button type="button" id="copyTripBreakdownBtn" class="btn btn-solid btn-sm" title="Copy ASCII thermal receipt">
           [COPY TRIP RECEIPT]
         </button>
-        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-sm">
+        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')"
+          class="btn btn-sm">
           + ADD EVENT
         </button>
         <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn btn-dim btn-sm">
           SETTLEMENT →
         </a>
         {% if not trip.is_general %}
-        <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete this trip and all its expenses?')">
+        <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" style="display: inline;"
+          onsubmit="return confirm('Delete this trip and all its expenses?')">
           <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;" title="Delete Trip">✕</button>
         </form>
         {% endif %}
@@ -57,10 +61,10 @@
 
   <!-- ═══ MAIN 2-COLUMN LAYOUT: EVENTS (LEFT) & SETTLEMENT SIDEBAR (RIGHT) ═══ -->
   <div class="trip-layout">
-    
+
     <!-- ── LEFT COLUMN: EVENTS WITH NESTED EXPENSES ── -->
     <div style="display: flex; flex-direction: column; gap: 14px;">
-      
+
       <!-- Quick Receipt OCR Dropzone Card -->
       <div class="card" style="padding: 14px 18px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -70,9 +74,11 @@
           <span class="badge badge-green">RAPIDOCR (~0.7s)</span>
         </div>
 
-        <div id="eventReceiptDropzone" style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 14px; text-align: center; cursor: pointer; transition: all 0.15s ease;">
+        <div id="eventReceiptDropzone"
+          style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 14px; text-align: center; cursor: pointer; transition: all 0.15s ease;">
           <input type="file" id="eventReceiptFileInput" accept="image/*" style="display: none;">
-          <div style="font-size: 13px; color: #0A8F20; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+          <div
+            style="font-size: 13px; color: #0A8F20; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
             [OCR: DRAG & DROP RECEIPT PHOTO HERE, OR CLICK TO BROWSE]
           </div>
           <p style="font-size: 11px; color: #888888; margin: 4px 0 0 0;">
@@ -81,16 +87,19 @@
         </div>
 
         <!-- Live Loading State for Event Receipt Scanning -->
-        <div id="eventScanLoading" style="display: none; align-items: center; gap: 10px; background: #0a0a0a; border: 1px solid #0A8F20; padding: 10px; margin-top: 8px; font-size: 12px; color: #0A8F20;">
+        <div id="eventScanLoading"
+          style="display: none; align-items: center; gap: 10px; background: #0a0a0a; border: 1px solid #0A8F20; padding: 10px; margin-top: 8px; font-size: 12px; color: #0A8F20;">
           <span>▪</span>
           <span>SCANNING RECEIPT LOCALLY WITH RAPIDOCR... EXTRACTING VENUE & ITEMS</span>
         </div>
 
         <!-- Scanned Event Preview Card -->
-        <div id="eventScanPreview" style="display: none; background: #0a0a0a; border: 1px solid #0A8F20; padding: 14px; margin-top: 8px; flex-direction: column; gap: 8px;">
+        <div id="eventScanPreview"
+          style="display: none; background: #0a0a0a; border: 1px solid #0A8F20; padding: 14px; margin-top: 8px; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span id="eventScanBadge" class="badge badge-green"></span>
-            <span id="eventScanAmount" class="receipt-font" style="font-size: 13px; font-weight: 700; color: #ffffff;"></span>
+            <span id="eventScanAmount" class="receipt-font"
+              style="font-size: 13px; font-weight: 700; color: #ffffff;"></span>
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <div>
@@ -107,7 +116,8 @@
             </div>
           </div>
           <div style="display: flex; gap: 8px; margin-top: 6px;">
-            <button type="button" id="autoSaveEventExpenseBtn" class="btn btn-solid" style="flex: 1; justify-content: center;">
+            <button type="button" id="autoSaveEventExpenseBtn" class="btn btn-solid"
+              style="flex: 1; justify-content: center;">
               [+] SAVE EVENT & BILL DIRECTLY
             </button>
             <button type="button" id="createEventAndSplitBtn" class="btn">
@@ -121,22 +131,27 @@
       <!-- ── EVENTS LIST WITH NESTED EXPENSES ── -->
       {% for event in events %}
       <div class="card" style="padding: 16px 18px;" id="event-card-{{ event.id }}">
-        
+
         <!-- Event Header -->
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <span class="badge badge-dim" style="font-size: 10px;">{{ event.type_icon }}</span>
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <h2 style="font-size: 15px; font-weight: 700; color: #ffffff; text-transform: uppercase; margin: 0; letter-spacing: 0.04em;">
+                <h2
+                  style="font-size: 15px; font-weight: 700; color: #ffffff; text-transform: uppercase; margin: 0; letter-spacing: 0.04em;">
                   {{ event.name }}
                 </h2>
-                <button type="button" onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')" class="btn btn-dim btn-sm" style="padding: 2px 6px;" title="Edit Event Name">
+                <button type="button"
+                  onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')"
+                  class="btn btn-dim btn-sm" style="padding: 2px 6px;" title="Edit Event Name">
                   ✏️
                 </button>
               </div>
               <div style="font-size: 11.5px; color: #888888; margin-top: 2px;">
-                {{ event.type_label }} · {{ event.expenses|length }} expense{{ '' if event.expenses|length == 1 else 's' }}
+                {{ event.type_label }} · {{ event.expenses|length }} expense{{ '' if event.expenses|length == 1 else 's'
+                }}
               </div>
             </div>
           </div>
@@ -144,16 +159,21 @@
           <div style="display: flex; align-items: center; gap: 8px;">
             <div style="text-align: right; margin-right: 8px;">
               <span style="font-size: 10px; color: #666; text-transform: uppercase; display: block;">EVENT TOTAL</span>
-              <span class="receipt-font" style="font-size: 16px; font-weight: 700; color: #0A8F20;">{{ event.total|currency }}</span>
+              <span class="receipt-font" style="font-size: 16px; font-weight: 700; color: #0A8F20;">{{
+                event.total|currency }}</span>
             </div>
-            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}" class="btn btn-sm">
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}"
+              class="btn btn-sm">
               + SIMPLE
             </a>
-            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}" class="btn btn-solid btn-sm">
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}"
+              class="btn btn-solid btn-sm">
               + DINEOUT BILL
             </a>
-            <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Delete event {{ event.name }} and all its expenses?')">
-              <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;" title="Delete Event">✕</button>
+            <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}"
+              style="display: inline;" onsubmit="return confirm('Delete event {{ event.name }} and all its expenses?')">
+              <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;"
+                title="Delete Event">✕</button>
             </form>
           </div>
         </div>
@@ -163,9 +183,10 @@
         <div style="display: flex; flex-direction: column; gap: 12px;">
           {% for exp in event.expenses %}
           <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 14px 16px;">
-            
+
             <!-- Expense Top Line -->
-            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+            <div
+              style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
               <div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <span class="badge {{ 'badge-green' if exp.mode == 'restaurant' else 'badge-dim' }}">
@@ -176,12 +197,14 @@
                   {% endif %}
                   <span style="font-size: 14px; font-weight: 700; color: #ffffff;">{{ exp.description }}</span>
                 </div>
-                
+
                 <div style="font-size: 12px; color: #888888; margin-top: 4px;">
                   {% if exp.is_treat %}
-                    <span style="color: #d97706; font-weight: 600;">TREAT HOSTED BY {{ exp.paid_by_name|upper }}</span> (Guests owe: ₹0.00) · Diners: {{ exp.consumer_names|join(', ') }}
+                  <span style="color: #d97706; font-weight: 600;">TREAT HOSTED BY {{ exp.paid_by_name|upper }}</span>
+                  (Guests owe: ₹0.00) · Diners: {{ exp.consumer_names|join(', ') }}
                   {% else %}
-                    Paid at table by <strong style="color: #ffffff;">{{ exp.paid_by_name }}</strong> · Diners: {{ exp.consumer_names|join(', ') }}
+                  Paid at table by <strong style="color: #ffffff;">{{ exp.paid_by_name }}</strong> · Diners: {{
+                  exp.consumer_names|join(', ') }}
                   {% endif %}
                 </div>
               </div>
@@ -227,12 +250,15 @@
                   ITEMIZED DISHES ({{ exp.enriched_items|length }})
                 </span>
               </div>
-              <div style="background: #141414; border: 1px solid #2a2a2a; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;">
+              <div
+                style="background: #141414; border: 1px solid #2a2a2a; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;">
                 {% for it in exp.enriched_items %}
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding: 3px 0; border-bottom: 1px dashed #222;">
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding: 3px 0; border-bottom: 1px dashed #222;">
                   <div>
                     <span style="color: #ffffff; font-weight: 500;">{{ it.name }}</span>
-                    <span style="font-size: 11px; color: #777; margin-left: 8px;">↳ ({{ it.consumer_names|join(', ') }})</span>
+                    <span style="font-size: 11px; color: #777; margin-left: 8px;">↳ ({{ it.consumer_names|join(', ')
+                      }})</span>
                   </div>
                   <span class="receipt-font" style="color: #0A8F20; font-weight: 600;">{{ it.price|currency }}</span>
                 </div>
@@ -242,10 +268,12 @@
             {% endif %}
 
             <!-- Expense Actions Footer -->
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; border-top: 1px solid #2a2a2a; padding-top: 8px; flex-wrap: wrap; gap: 8px;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; border-top: 1px solid #2a2a2a; padding-top: 8px; flex-wrap: wrap; gap: 8px;">
               <div>
                 {% if exp.payer_upi %}
-                <span style="font-size: 11px; color: #666;">UPI: <strong style="color: #0A8F20;">{{ exp.payer_upi }}</strong></span>
+                <span style="font-size: 11px; color: #666;">UPI: <strong style="color: #0A8F20;">{{ exp.payer_upi
+                    }}</strong></span>
                 {% endif %}
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -255,7 +283,8 @@
                 <a href="{{ url_for('edit_expense', trip_id=trip.id, expense_id=exp.id) }}" class="btn btn-dim btn-sm">
                   EDIT
                 </a>
-                <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete this expense?')">
+                <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" style="display: inline;"
+                  onsubmit="return confirm('Delete this expense?')">
                   <input type="hidden" name="action" value="delete">
                   <input type="hidden" name="expense_id" value="{{ exp.id }}">
                   <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;">✕</button>
@@ -270,8 +299,10 @@
         <div style="text-align: center; padding: 24px 10px; background: #0a0a0a; border: 1px dashed #2a2a2a;">
           <p style="font-size: 12px; color: #666; margin: 0;">NO EXPENSES IN THIS EVENT YET.</p>
           <div style="display: flex; justify-content: center; gap: 8px; margin-top: 8px;">
-            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}" class="btn btn-solid btn-sm">+ RESTAURANT BILL</a>
-            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}" class="btn btn-sm">+ SIMPLE EXPENSE</a>
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}"
+              class="btn btn-solid btn-sm">+ RESTAURANT BILL</a>
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}"
+              class="btn btn-sm">+ SIMPLE EXPENSE</a>
           </div>
         </div>
         {% endif %}
@@ -281,8 +312,10 @@
 
       {% if not events %}
       <div class="card" style="text-align: center; padding: 40px 20px;">
-        <p style="font-size: 13px; color: #888; text-transform: uppercase; margin-bottom: 12px;">NO EVENTS IN THIS TRIP YET</p>
-        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-solid">
+        <p style="font-size: 13px; color: #888; text-transform: uppercase; margin-bottom: 12px;">NO EVENTS IN THIS TRIP
+          YET</p>
+        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')"
+          class="btn btn-solid">
           [+ CREATE FIRST EVENT]
         </button>
       </div>
@@ -292,19 +325,21 @@
 
     <!-- ── RIGHT COLUMN: TRIP ROSTER, BALANCES & SETTLEMENT SIDEBAR ── -->
     <div style="display: flex; flex-direction: column; gap: 14px;">
-      
+
       <!-- Balances Card -->
       <div class="card" style="padding: 16px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
-          <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">TRIP BALANCES</span>
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
+          <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">TRIP
+            BALANCES</span>
           <span class="badge badge-dim">{{ balances|length }} DINERS</span>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 6px;">
           {% for row in balances %}
           {% set is_plus = row.balance > 0 %}
-          {% set is_minus = row.balance < 0 %}
-          <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px;">
+          {% set is_minus = row.balance < 0 %} <div
+            style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 10px; font-weight: 700; color: #0A8F20;">{{ row|ascii_avatar }}</span>
               <span style="font-size: 12.5px; color: #ffffff; font-weight: 500;">{{ row.name }}</span>
@@ -318,95 +353,105 @@
               <span style="color: #666666;">SETTLED</span>
               {% endif %}
             </div>
-          </div>
-          {% endfor %}
         </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Settlement Transfers Card -->
+    <div class="card" style="padding: 16px;">
+      <div
+        style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
+        <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">SETTLEMENT
+          DUES</span>
+        <button type="button" id="copySettlementCardBtn" class="btn btn-dim btn-sm"
+          style="padding: 2px 8px; font-size: 10px;">
+          COPY
+        </button>
       </div>
 
-      <!-- Settlement Transfers Card -->
-      <div class="card" style="padding: 16px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
-          <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">SETTLEMENT DUES</span>
-          <button type="button" id="copySettlementCardBtn" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
-            COPY
-          </button>
-        </div>
-
-        {% if transactions %}
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          {% for tx in transactions %}
-            {% if tx.is_settled %}
-            <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 10px; font-size: 11.5px; opacity: 0.65;">
-              <div>
-                <span style="text-decoration: line-through; color: #888;">{{ tx.from }} → {{ tx.to }}</span>
-                <span style="color: #0A8F20; margin-left: 6px; font-weight: 700;">✓ PAID</span>
-              </div>
-              <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
-                <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-                <input type="hidden" name="from_name" value="{{ tx.from }}">
-                <input type="hidden" name="to_name" value="{{ tx.to }}">
-                <button type="submit" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 2px 6px;">UNDO</button>
-              </form>
-            </div>
-            {% else %}
-            <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px; font-size: 12px;">
-              <div>
-                <span style="color: #d97706; font-weight: 600;">{{ tx.from }}</span>
-                <span style="color: #555;"> owes </span>
-                <span style="color: #0A8F20; font-weight: 600;">{{ tx.to }}</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span class="receipt-font" style="font-weight: 700; color: #ffffff;">{{ tx.amount|currency }}</span>
-                {% if tx.to_upi %}
-                <a href="{{ url_for('pay', pa=tx.to_upi, pn=tx.to, am=tx.amount, tn=(trip.name + ' Settlement')) }}" class="btn btn-solid btn-sm" style="font-size: 9px; padding: 2px 6px;">
-                  UPI →
-                </a>
-                {% endif %}
-                <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
-                  <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-                  <input type="hidden" name="from_name" value="{{ tx.from }}">
-                  <input type="hidden" name="to_name" value="{{ tx.to }}">
-                  <input type="hidden" name="amount" value="{{ tx.amount }}">
-                  <button type="submit" class="btn btn-sm" style="font-size: 9px; padding: 2px 6px;" title="Mark as Paid">
-                    ✓
-                  </button>
-                </form>
-              </div>
-            </div>
-            {% endif %}
-          {% endfor %}
+      {% if transactions %}
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        {% for tx in transactions %}
+        {% if tx.is_settled %}
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 10px; font-size: 11.5px; opacity: 0.65;">
+          <div>
+            <span style="text-decoration: line-through; color: #888;">{{ tx.from }} → {{ tx.to }}</span>
+            <span style="color: #0A8F20; margin-left: 6px; font-weight: 700;">✓ PAID</span>
+          </div>
+          <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+            <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+            <input type="hidden" name="from_name" value="{{ tx.from }}">
+            <input type="hidden" name="to_name" value="{{ tx.to }}">
+            <button type="submit" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 2px 6px;">UNDO</button>
+          </form>
         </div>
         {% else %}
-        <div style="text-align: center; padding: 18px 10px; background: #0a0a0a; border: 1px dashed #2a2a2a;">
-          <p style="font-size: 12px; color: #0A8F20; margin: 0; font-weight: 600;">✓ ALL SETTLED</p>
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px; font-size: 12px;">
+          <div>
+            <span style="color: #d97706; font-weight: 600;">{{ tx.from }}</span>
+            <span style="color: #555;"> owes </span>
+            <span style="color: #0A8F20; font-weight: 600;">{{ tx.to }}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="receipt-font" style="font-weight: 700; color: #ffffff;">{{ tx.amount|currency }}</span>
+            {% if tx.to_upi %}
+            <a href="{{ url_for('pay', pa=tx.to_upi, pn=tx.to, am=tx.amount, tn=(trip.name + ' Settlement')) }}"
+              class="btn btn-solid btn-sm" style="font-size: 9px; padding: 2px 6px;">
+              UPI →
+            </a>
+            {% endif %}
+            <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+              <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+              <input type="hidden" name="from_name" value="{{ tx.from }}">
+              <input type="hidden" name="to_name" value="{{ tx.to }}">
+              <input type="hidden" name="amount" value="{{ tx.amount }}">
+              <button type="submit" class="btn btn-sm" style="font-size: 9px; padding: 2px 6px;" title="Mark as Paid">
+                ✓
+              </button>
+            </form>
+          </div>
         </div>
         {% endif %}
-
-        <div style="border-top: 1px solid #2a2a2a; padding-top: 12px; margin-top: 12px;">
-          <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn" style="width: 100%; justify-content: center;">
-            FULL SETTLEMENT VIEW →
-          </a>
-        </div>
+        {% endfor %}
       </div>
+      {% else %}
+      <div style="text-align: center; padding: 18px 10px; background: #0a0a0a; border: 1px dashed #2a2a2a;">
+        <p style="font-size: 12px; color: #0A8F20; margin: 0; font-weight: 600;">✓ ALL SETTLED</p>
+      </div>
+      {% endif %}
 
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 12px; margin-top: 12px;">
+        <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn"
+          style="width: 100%; justify-content: center;">
+          FULL SETTLEMENT VIEW →
+        </a>
+      </div>
     </div>
+
   </div>
+</div>
 
 </div>
 
 <!-- ═══ MODAL: ADD EVENT ═══ -->
 <div id="addEventModal" class="modal-backdrop">
   <div class="modal-content" style="max-width: 480px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
       <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">ADD AN EVENT</span>
       <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')"
         class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
-    <form method="post" action="{{ url_for('create_event', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 14px;">
+    <form method="post" action="{{ url_for('create_event', trip_id=trip.id) }}"
+      style="display: flex; flex-direction: column; gap: 14px;">
       <div>
         <label for="event_name" style="display: block; margin-bottom: 4px;">EVENT NAME</label>
-        <input id="event_name" name="event_name" type="text" required maxlength="60" placeholder="e.g. Dinner at Mirabelle, Fuel, Airbnb">
+        <input id="event_name" name="event_name" type="text" required maxlength="60"
+          placeholder="e.g. Dinner at Mirabelle, Fuel, Airbnb">
       </div>
       <div>
         <label for="event_type" style="display: block; margin-bottom: 4px;">CATEGORY</label>
@@ -416,8 +461,10 @@
           {% endfor %}
         </select>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
-        <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
+      <div
+        style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
+        <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')"
+          class="btn btn-dim">CANCEL</button>
         <button type="submit" class="btn btn-solid">[+ ADD EVENT]</button>
       </div>
     </form>
@@ -427,7 +474,8 @@
 <!-- ═══ MODAL: EDIT EVENT ═══ -->
 <div id="editEventModal" class="modal-backdrop">
   <div class="modal-content" style="max-width: 440px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
       <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">EDIT EVENT</span>
       <button type="button" onclick="closeEditEventModal()" class="btn btn-dim btn-sm"
         style="padding: 1px 6px;">✕</button>
@@ -445,7 +493,8 @@
           {% endfor %}
         </select>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
+      <div
+        style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
         <button type="button" onclick="closeEditEventModal()" class="btn btn-dim">CANCEL</button>
         <button type="submit" class="btn btn-solid">SAVE CHANGES</button>
       </div>
@@ -456,7 +505,8 @@
 <!-- ═══ MODAL: MANAGE ROSTER ═══ -->
 <div id="manageMembersModal" class="modal-backdrop">
   <div class="modal-content" style="max-width: 540px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
       <div>
         <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">TRIP ROSTER</span>
         <p style="font-size: 11px; color: #888; margin: 2px 0 0 0;">Manage participants for {{ trip.name }}</p>
@@ -465,10 +515,12 @@
         class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
-    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 14px;">
+    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}"
+      style="display: flex; flex-direction: column; gap: 14px;">
       <div>
         <label style="display: block; margin-bottom: 6px;">ACTIVE PARTICIPANTS</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 220px; overflow-y: auto;" class="panel-scroll">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 220px; overflow-y: auto;"
+          class="panel-scroll">
           {% for m in all_members %}
           {% set in_trip = m.id in trip.member_ids if trip.member_ids else true %}
           <label class="chip {{ 'active' if in_trip else '' }}" style="justify-content: space-between;">
@@ -481,18 +533,23 @@
       </div>
 
       <div style="border-top: 1px solid #2a2a2a; padding-top: 10px;">
-        <label for="trip_modal_new_members" style="display: block; margin-bottom: 4px; font-size: 10px; color: #888;">+ ADD NEW PEOPLE (COMMA SEPARATED)</label>
+        <label for="trip_modal_new_members" style="display: block; margin-bottom: 4px; font-size: 10px; color: #888;">+
+          ADD NEW PEOPLE (COMMA SEPARATED)</label>
         <input id="trip_modal_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha">
       </div>
 
       <div style="border-top: 1px solid #2a2a2a; padding-top: 10px;">
-        <label for="trip_modal_group_name" style="display: block; margin-bottom: 4px; font-size: 10px; color: #888;">GROUP / OCCASION CLASSIFICATION</label>
-        <input id="trip_modal_group_name" name="group_name" type="text" value="{{ trip.group_name or '' }}" placeholder="e.g. PUJO GROUP, FRIENDS, TRIP 2026">
+        <label for="trip_modal_group_name"
+          style="display: block; margin-bottom: 4px; font-size: 10px; color: #888;">GROUP / OCCASION
+          CLASSIFICATION</label>
+        <input id="trip_modal_group_name" name="group_name" type="text" value="{{ trip.group_name or '' }}"
+          placeholder="e.g. PUJO GROUP, FRIENDS, TRIP 2026">
       </div>
 
       <div style="background: #101010; border: 1px solid #2a2a2a; padding: 10px 12px; margin-top: 4px;">
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 11px; color: #d4d4d4;">
-          <input type="checkbox" name="sync_expenses" value="1" checked style="accent-color: #0A8F20; width: 14px; height: 14px;">
+          <input type="checkbox" name="sync_expenses" value="1" checked
+            style="accent-color: #0A8F20; width: 14px; height: 14px;">
           <span>SYNC NEW MEMBERS TO ALL EXISTING BILLS & DISHES</span>
         </label>
         <div style="font-size: 10px; color: #666; margin-left: 22px; margin-top: 2px;">
@@ -500,8 +557,10 @@
         </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
-        <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
+      <div
+        style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
+        <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')"
+          class="btn btn-dim">CANCEL</button>
         <button type="submit" class="btn btn-solid">[SAVE ROSTER]</button>
       </div>
     </form>
@@ -635,8 +694,8 @@
     const payerName = targetExp.paid_by_name || getMemName(targetExp.paid_by) || 'Someone';
     const payerId = targetExp.paid_by;
     const consumers = targetExp.consumers || [];
-    const consumerNames = (targetExp.consumer_names && targetExp.consumer_names.length) 
-      ? targetExp.consumer_names 
+    const consumerNames = (targetExp.consumer_names && targetExp.consumer_names.length)
+      ? targetExp.consumer_names
       : consumers.map(c => getMemName(c));
     const numConsumers = consumerNames.length || 1;
     const isTreat = targetExp.is_treat || false;
@@ -774,7 +833,7 @@
       }
 
       if (isTreat) {
-        lines.push(padC('🎁 SPECIAL: HOSTED AS A TREAT'));
+        lines.push(padC('[TREAT] SPECIAL: HOSTED AS A TREAT'));
         lines.push(padC(`Paid 100% by ${payerName}`));
         lines.push(padC('Friends & Guests owe: ₹0.00'));
       } else {
@@ -813,7 +872,7 @@
       lines.push(divider('-'));
 
       if (isTreat) {
-        lines.push(padC('🎁 SPECIAL: HOSTED AS A TREAT'));
+        lines.push(padC('[TREAT] SPECIAL: HOSTED AS A TREAT'));
         lines.push(padC(`Paid 100% by ${payerName}`));
         lines.push(padC('Friends & Guests owe: ₹0.00'));
       } else {
@@ -880,7 +939,7 @@
         const consumers = (exp.consumer_names || []).join(', ');
         if (exp.is_treat) {
           lines.push(padRow(`   • ${exp.description}`, amt));
-          lines.push(`     [🎁 TREAT BY ${payer.toUpperCase()} · GUESTS OWE ₹0.00]`);
+          lines.push(`     [[TREAT] HOSTED BY ${payer.toUpperCase()} · GUESTS OWE ₹0.00]`);
         } else {
           lines.push(padRow(`   • ${exp.description}`, amt));
           lines.push(`     Paid by: ${payer} · Split among: ${consumers}`);
