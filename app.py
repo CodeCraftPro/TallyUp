@@ -5,6 +5,19 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import json
 import os
 
+# Auto-load .env if present
+_env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.exists(_env_file):
+    try:
+        with open(_env_file, "r", encoding="utf-8") as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith("#") and "=" in _line:
+                    _k, _v = _line.split("=", 1)
+                    os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+    except Exception:
+        pass
+
 app = Flask(__name__)
 app.secret_key = "change-this-in-production"
 
@@ -258,10 +271,11 @@ def get_llm_config():
     cfg = db.get("llm_config", {})
     provider = cfg.get("provider") or os.environ.get("LLM_PROVIDER") or "gemini"
     default_model = "gemini-1.5-flash" if provider == "gemini" else ("gpt-4o-mini" if provider == "openai" else ("claude-3-5-sonnet-20241022" if provider == "claude" else ""))
+    api_key = cfg.get("api_key") or os.environ.get("GEMINI_API_KEY") or os.environ.get("LLM_API_KEY") or ""
     return {
-        "engine": cfg.get("engine") or os.environ.get("LLM_ENGINE") or "local",
+        "engine": cfg.get("engine") or os.environ.get("LLM_ENGINE") or "llm",
         "provider": provider,
-        "api_key": cfg.get("api_key") or os.environ.get("LLM_API_KEY") or "",
+        "api_key": api_key,
         "model": cfg.get("model") or os.environ.get("LLM_MODEL") or default_model,
         "base_url": cfg.get("base_url") or os.environ.get("LLM_BASE_URL") or "",
     }

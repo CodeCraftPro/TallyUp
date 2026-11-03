@@ -276,3 +276,4 @@ def scan_receipt_with_llm(image_path: str, config: Dict[str, Any]) -> Dict[str, 
         "is_valid": reconciled.get("is_valid", True),
         "reconciliation_notes": reconciled.get("reconciliation_notes", [])
     }
+
