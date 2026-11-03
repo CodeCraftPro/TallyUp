@@ -26,7 +26,7 @@
           <span style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.06em;">ROSTER:</span>
           {% for m in members %}
           <span class="badge" style="color: #cccccc;">
-            {{ m.avatar }} {{ m.name }}
+            <span style="color: #0A8F20; font-weight: 700;">{{ m|ascii_avatar }}</span> {{ m.name }}
           </span>
           {% endfor %}
           <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('active')" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
@@ -73,7 +73,7 @@
         <div id="eventReceiptDropzone" style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 14px; text-align: center; cursor: pointer; transition: all 0.15s ease;">
           <input type="file" id="eventReceiptFileInput" accept="image/*" style="display: none;">
           <div style="font-size: 13px; color: #0A8F20; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
-            [📷 DRAG & DROP RECEIPT PHOTO HERE, OR CLICK TO BROWSE]
+            [OCR: DRAG & DROP RECEIPT PHOTO HERE, OR CLICK TO BROWSE]
           </div>
           <p style="font-size: 11px; color: #888888; margin: 4px 0 0 0;">
             Auto-detects restaurant, meal type (lunch/dinner), dishes, prices, discounts & taxes.
@@ -108,7 +108,7 @@
           </div>
           <div style="display: flex; gap: 8px; margin-top: 6px;">
             <button type="button" id="autoSaveEventExpenseBtn" class="btn btn-solid" style="flex: 1; justify-content: center;">
-              ⚡ SAVE EVENT & BILL DIRECTLY
+              [+] SAVE EVENT & BILL DIRECTLY
             </button>
             <button type="button" id="createEventAndSplitBtn" class="btn">
               ITEMIZE SPLIT →
@@ -125,7 +125,7 @@
         <!-- Event Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 18px;">{{ event.type_icon }}</span>
+            <span class="badge badge-dim" style="font-size: 10px;">{{ event.type_icon }}</span>
             <div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <h2 style="font-size: 15px; font-weight: 700; color: #ffffff; text-transform: uppercase; margin: 0; letter-spacing: 0.04em;">
@@ -169,10 +169,10 @@
               <div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <span class="badge {{ 'badge-green' if exp.mode == 'restaurant' else 'badge-dim' }}">
-                    {{ '🍽️ RESTAURANT BILL' if exp.mode == 'restaurant' else '💰 SIMPLE' }}
+                    {{ '[REST] RESTAURANT BILL' if exp.mode == 'restaurant' else '[SMPL] SIMPLE' }}
                   </span>
                   {% if exp.is_treat %}
-                  <span class="badge badge-amber">🎁 TREAT</span>
+                  <span class="badge badge-amber">[TREAT]</span>
                   {% endif %}
                   <span style="font-size: 14px; font-weight: 700; color: #ffffff;">{{ exp.description }}</span>
                 </div>
@@ -306,7 +306,7 @@
           {% set is_minus = row.balance < 0 %}
           <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 14px;">{{ row.avatar }}</span>
+              <span style="font-size: 10px; font-weight: 700; color: #0A8F20;">{{ row|ascii_avatar }}</span>
               <span style="font-size: 12.5px; color: #ffffff; font-weight: 500;">{{ row.name }}</span>
             </div>
             <div class="receipt-font" style="font-size: 13px; font-weight: 700;">
@@ -472,7 +472,7 @@
           {% for m in all_members %}
           {% set in_trip = m.id in trip.member_ids if trip.member_ids else true %}
           <label class="chip {{ 'active' if in_trip else '' }}" style="justify-content: space-between;">
-            <span>{{ m.avatar }} {{ m.name }}</span>
+            <span><span style="color: #0A8F20; font-weight: 700;">{{ m|ascii_avatar }}</span> {{ m.name }}</span>
             <input type="checkbox" name="member_ids" value="{{ m.id }}" class="sr-only" {{ 'checked' if in_trip else ''
               }} onchange="this.closest('.chip').classList.toggle('active', this.checked)">
           </label>
@@ -480,14 +480,29 @@
         </div>
       </div>
 
-      <div style="border-top: 1px solid #2a2a2a; padding-top: 12px;">
-        <label for="trip_modal_new_members" style="display: block; margin-bottom: 4px;">+ ADD NEW PEOPLE (COMMA SEPARATED)</label>
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 10px;">
+        <label for="trip_modal_new_members" style="display: block; margin-bottom: 4px; font-size: 10px; color: #888;">+ ADD NEW PEOPLE (COMMA SEPARATED)</label>
         <input id="trip_modal_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha">
+      </div>
+
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 10px;">
+        <label for="trip_modal_group_name" style="display: block; margin-bottom: 4px; font-size: 10px; color: #888;">GROUP / OCCASION CLASSIFICATION</label>
+        <input id="trip_modal_group_name" name="group_name" type="text" value="{{ trip.group_name or '' }}" placeholder="e.g. PUJO GROUP, FRIENDS, TRIP 2026">
+      </div>
+
+      <div style="background: #101010; border: 1px solid #2a2a2a; padding: 10px 12px; margin-top: 4px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 11px; color: #d4d4d4;">
+          <input type="checkbox" name="sync_expenses" value="1" checked style="accent-color: #0A8F20; width: 14px; height: 14px;">
+          <span>SYNC NEW MEMBERS TO ALL EXISTING BILLS & DISHES</span>
+        </label>
+        <div style="font-size: 10px; color: #666; margin-left: 22px; margin-top: 2px;">
+          Automatically adds new members to the dining list and dishes shared by all table guests.
+        </div>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
         <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
-        <button type="submit" class="btn btn-solid">SAVE ROSTER</button>
+        <button type="submit" class="btn btn-solid">[SAVE ROSTER]</button>
       </div>
     </form>
   </div>

@@ -8,6 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const savedScale = localStorage.getItem('tallyup_font_scale') || 'normal';
+      document.documentElement.dataset.fontScale = savedScale;
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -35,10 +41,18 @@
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; color-scheme: dark; }
     html { height: 100%; }
+    :root {
+      --font-scale: 1;
+    }
+    html[data-font-scale="compact"] { --font-scale: 0.88; font-size: 13px; }
+    html[data-font-scale="normal"] { --font-scale: 1.0; font-size: 14.5px; }
+    html[data-font-scale="large"] { --font-scale: 1.15; font-size: 16px; }
+    html[data-font-scale="xlarge"] { --font-scale: 1.30; font-size: 18px; }
+
     body {
       min-height: 100%;
       font-family: 'IBM Plex Mono', 'JetBrains Mono', 'Courier New', Courier, monospace;
-      font-size: 14px;
+      font-size: calc(14px * var(--font-scale));
       line-height: 1.55;
       color: #d4d4d4;
       background: #0a0a0a;
@@ -371,7 +385,8 @@
       {% if session.get('members') %}
       <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px;">TRIPS</a>
       <a href="{{ url_for('settle') }}" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px;">SETTLE</a>
-      <form method="post" action="{{ url_for('reset') }}" style="display:inline;">
+      <button type="button" onclick="openSettingsModal()" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px; color: #0A8F20;">[SETTINGS]</button>
+      <form method="post" action="{{ url_for('reset') }}" style="display:inline;" onsubmit="return confirm('Clear active session?');">
         <button type="submit" class="btn btn-sm btn-dim" style="border-style:none; padding:4px 10px;">RESET</button>
       </form>
       {% endif %}
@@ -394,6 +409,72 @@
     {% block content %}{% endblock %}
   </main>
 
+  <!-- ═══ SYSTEM CONFIGURATION & SETTINGS MODAL ═══ -->
+  <div id="settingsModal" class="modal-backdrop" onclick="if(event.target===this) closeSettingsModal()">
+    <div class="modal-content" style="max-width: 580px; padding: 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #0A8F20; font-weight: 700;">[SYS]</span>
+          <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.06em; text-transform: uppercase;">TERMINAL CONFIGURATION</span>
+        </div>
+        <button type="button" onclick="closeSettingsModal()" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- Section 1: Typography Scale -->
+        <div>
+          <label style="display: block; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 6px;">
+            PROPORTIONAL TYPOGRAPHY SCALE (ZOOM)
+          </label>
+          <p style="font-size: 11px; color: #666; margin: 0 0 8px 0;">
+            Adjust reading scale across all pages to match your monitor and resolution.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;" id="fontScaleButtons">
+            <button type="button" onclick="setFontScale('compact')" class="btn btn-dim font-scale-btn" data-scale="compact" style="font-size: 11px; padding: 6px 0; justify-content: center;">88% COMPACT</button>
+            <button type="button" onclick="setFontScale('normal')" class="btn btn-dim font-scale-btn" data-scale="normal" style="font-size: 11px; padding: 6px 0; justify-content: center;">100% NORMAL</button>
+            <button type="button" onclick="setFontScale('large')" class="btn btn-dim font-scale-btn" data-scale="large" style="font-size: 11px; padding: 6px 0; justify-content: center;">115% LARGE</button>
+            <button type="button" onclick="setFontScale('xlarge')" class="btn btn-dim font-scale-btn" data-scale="xlarge" style="font-size: 11px; padding: 6px 0; justify-content: center;">130% EXTRA</button>
+          </div>
+        </div>
+
+        <!-- Section 2: UPI Directory -->
+        <div style="border-top: 1px solid #2a2a2a; padding-top: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">
+              MEMBER UPI DIRECTORY
+            </label>
+            <span style="font-size: 10px; color: #555;">AUTO-FILLS ON RECEIPTS</span>
+          </div>
+          <p style="font-size: 11px; color: #666; margin: 0 0 10px 0;">
+            Set default UPI IDs (e.g. username@oksbi) to automatically embed direct UPI QR and payment links on all bill shares.
+          </p>
+          <form method="post" action="{{ url_for('update_upi_settings') }}" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;" class="panel-scroll">
+              {% for m in all_app_members %}
+              <div style="display: flex; align-items: center; gap: 8px; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: #0A8F20; width: 40px;">{{ m|ascii_avatar }}</span>
+                <span style="font-size: 12px; font-weight: 600; color: #fff; width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ m.name }}</span>
+                <input type="text" name="upi_{{ m.id }}" value="{{ m.upi_id or '' }}" placeholder="username@bank" style="height: 30px; font-size: 11px; flex: 1;">
+              </div>
+              {% endfor %}
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+              <button type="submit" class="btn btn-solid btn-sm">[SAVE UPI DIRECTORY]</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Section 3: App info & System Tools -->
+        <div style="border-top: 1px solid #2a2a2a; padding-top: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span style="font-size: 10.5px; color: #555;">TALLYUP // RETRO MONOSPACE LEDGER v2.4</span>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" onclick="closeSettingsModal()" class="btn btn-dim btn-sm">CLOSE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Auto-dismiss toasts
     document.querySelectorAll('.toast').forEach((toast, index) => {
@@ -411,6 +492,41 @@
         if (loader) loader.classList.add('active');
       });
     });
+
+    // Font Scaling controls
+    function setFontScale(scale) {
+      document.documentElement.dataset.fontScale = scale;
+      localStorage.setItem('tallyup_font_scale', scale);
+      highlightActiveFontScale();
+    }
+
+    function highlightActiveFontScale() {
+      const cur = document.documentElement.dataset.fontScale || 'normal';
+      document.querySelectorAll('.font-scale-btn').forEach(btn => {
+        if (btn.dataset.scale === cur) {
+          btn.classList.add('btn-solid');
+          btn.classList.remove('btn-dim');
+        } else {
+          btn.classList.remove('btn-solid');
+          btn.classList.add('btn-dim');
+        }
+      });
+    }
+
+    function openSettingsModal() {
+      const modal = document.getElementById('settingsModal');
+      if (modal) {
+        modal.classList.add('active');
+        highlightActiveFontScale();
+      }
+    }
+
+    function closeSettingsModal() {
+      const modal = document.getElementById('settingsModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', highlightActiveFontScale);
   </script>
   {% block scripts %}{% endblock %}
 </body>

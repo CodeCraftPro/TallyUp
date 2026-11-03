@@ -2,17 +2,85 @@
 {% block title %}TallyUp — Dashboard{% endblock %}
 
 {% block content %}
-<div style="max-width: 1400px; margin: 0 auto; padding: 16px 20px;">
-  
+<div style="max-width: 1440px; margin: 0 auto; padding: 16px 20px;">
+
+  <!-- ═══ RETRO ASCII TELEMETRY HEADER ═══ -->
+  <div class="card" style="padding: 12px 16px; margin-bottom: 14px; background: #0c0c0c; border: 1px solid #222;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <pre class="receipt-font" style="margin: 0; font-size: 9.5px; line-height: 1.15; color: #0A8F20; user-select: none;">
+ _____ _    _     _  __   ___  _ ____  
+|_   _/ \  | |   | | \ \ / / | | |  _ \ 
+  | |/ _ \ | |   | |  \ V /| | | | |_) |
+  | / ___ \| |___| |___| | | |_| |  __/ 
+  |/_/   \_\_____|_____|_|  \___/|_|    </pre>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.06em;">FINANCIAL DISSECTION ENGINE</span>
+          <span style="font-size: 10.5px; color: #666;">ITEMIZED RESTAURANT SPLIT & GROUP BALANCES</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px; font-size: 11px;">
+        <div style="display: flex; align-items: center; gap: 6px; background: #141414; border: 1px solid #2a2a2a; padding: 4px 10px;">
+          <span style="color: #0A8F20; font-size: 10px;">●</span>
+          <span style="color: #aaa; text-transform: uppercase;">SYS: ONLINE</span>
+        </div>
+        <div id="liveClock" class="receipt-font" style="color: #888; font-size: 11px; background: #141414; border: 1px solid #2a2a2a; padding: 4px 10px;">
+          00:00:00
+        </div>
+        <button type="button" onclick="openSettingsModal()" class="btn btn-dim btn-sm" style="font-size: 11px;">
+          [CONFIG]
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TELEMETRY 4-TILE ROW ═══ -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 16px;">
+    <div class="card" style="padding: 12px 14px;">
+      <span style="font-size: 10.5px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">TOTAL GROSS SPEND</span>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+        <span class="receipt-font" style="font-size: 20px; font-weight: 700; color: #fff;">{{ total_spent_all|currency }}</span>
+        <span style="font-size: 9.5px; color: #0A8F20; border: 1px solid #0A8F20; padding: 1px 5px;">ALL TRIPS</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 12px 14px;">
+      <span style="font-size: 10.5px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">BILLS & DISHES LOGGED</span>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+        <span class="receipt-font" style="font-size: 20px; font-weight: 700; color: #fff;">{{ total_expenses_all }}</span>
+        <span style="font-size: 10px; color: #888;">ACROSS {{ total_events_all }} EVENTS</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 12px 14px;">
+      <span style="font-size: 10.5px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">ACTIVE DINERS</span>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+        <span class="receipt-font" style="font-size: 20px; font-weight: 700; color: #fff;">{{ members|length }}</span>
+        <span style="font-size: 10px; color: #888;">PARTICIPANTS</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 12px 14px;">
+      <span style="font-size: 10.5px; color: #888; text-transform: uppercase; letter-spacing: 0.06em;">SETTLEMENT ARREARS</span>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px;">
+        <span class="receipt-font" style="font-size: 20px; font-weight: 700; color: {{ '#d97706' if net_unsettled > 0 else '#0A8F20' }};">{{ net_unsettled|currency }}</span>
+        <span style="font-size: 9.5px; color: {{ '#d97706' if net_unsettled > 0 else '#0A8F20' }}; border: 1px solid currentColor; padding: 1px 5px;">
+          {{ '[PENDING]' if net_unsettled > 0 else '[BALANCED]' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
   <!-- Subheader / Status Bar -->
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; gap: 10px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; gap: 10px;">
     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-      <span style="font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.06em; text-transform: uppercase;">TRIPS & OCCASIONS</span>
+      <span style="font-size: 13.5px; font-weight: 700; color: #fff; letter-spacing: 0.06em; text-transform: uppercase;">TRIPS & OCCASIONS</span>
       <span class="badge badge-green">{{ trips|length }} ACTIVE</span>
       <div style="display: none; md:display: flex; align-items: center; gap: 6px;" class="hidden md:flex">
         {% for member in members %}
         <span class="badge" style="color: #888;">
-          <span>{{ member.avatar }}</span>
+          <span style="color: #0A8F20; font-weight: 700;">{{ member|ascii_avatar }}</span>
           <span>{{ member.name }}</span>
         </span>
         {% endfor %}
@@ -20,100 +88,173 @@
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
       <button type="button" id="openNewTripBtn" class="btn btn-solid">
-        + NEW TRIP
+        [+ NEW TRIP]
       </button>
     </div>
   </div>
 
   <!-- Main Viewport Layout: 2 Columns -->
   <div class="dashboard-layout">
-    
-    <!-- Left Column: Trip Cards -->
-    <div style="display: flex; flex-direction: column; gap: 12px;">
+
+    <!-- Left Column: Trip Cards & Recent Bills Ledger -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
       {% if trips %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px;">
-          {% for trip in trips %}
-          <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="card" style="display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; transition: border-color 0.15s ease;" onmouseover="this.style.borderColor='#0A8F20'" onmouseout="this.style.borderColor='#2a2a2a'">
-            <div>
-              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 14px;">{{ '📋' if trip.is_general else '📁' }}</span>
-                  <span style="font-weight: 600; color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em;">{{ trip.name }}</span>
-                </div>
-                {% if trip.group_name %}
-                <span class="badge badge-green" style="font-size: 9px;">{{ trip.group_name }}</span>
-                {% endif %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 10px;">
+        {% for trip in trips %}
+        <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="card"
+          style="display: flex; flex-direction: column; justify-content: space-between; text-decoration: none; transition: border-color 0.15s ease;"
+          onmouseover="this.style.borderColor='#0A8F20'" onmouseout="this.style.borderColor='#2a2a2a'">
+          <div>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 11px; color: #0A8F20; font-weight: 700;">[DIR]</span>
+                <span style="font-weight: 600; color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em;">{{ trip.name }}</span>
               </div>
-
-              <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
-                {% if trip.date %}<span style="color: #888;">{{ trip.date|format_date }}</span> · {% endif %}
-                <span>{{ trip.event_count }} EVT{{ '' if trip.event_count == 1 else 'S' }}</span> ·
-                <span>{{ trip.expense_count }} EXPENSE{{ '' if trip.expense_count == 1 else 'S' }}</span>
-              </div>
-
-              {% if trip.trip_members %}
-              <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;">
-                {% for m in trip.trip_members %}
-                <span style="font-size: 10px; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 2px 6px; color: #888;">
-                  {{ m.avatar }} {{ m.name }}
-                </span>
-                {% endfor %}
-              </div>
-              {% endif %}
+              <span class="badge {{ 'badge-green' if trip.group_name and trip.group_name != 'PERSONAL' and trip.group_name != 'CUSTOM' else 'badge-dim' }}" style="font-size: 9.5px; letter-spacing: 0.05em;">
+                [{{ (trip.group_name or 'PERSONAL')|upper }}]
+              </span>
             </div>
 
-            <div style="display: flex; align-items: flex-end; justify-content: space-between; border-top: 1px solid #2a2a2a; padding-top: 8px; margin-top: 4px;">
-              <span style="font-size: 10px; color: #555; text-transform: uppercase;">TOTAL SPEND</span>
-              <span class="receipt-font" style="font-size: 15px; font-weight: 700; color: #0A8F20;">{{ trip.total_expenses|currency }}</span>
+            <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
+              {% if trip.date %}<span style="color: #888;">{{ trip.date|format_date }}</span> · {% endif %}
+              <span>{{ trip.event_count }} EVT{{ '' if trip.event_count == 1 else 'S' }}</span> ·
+              <span>{{ trip.expense_count }} EXPENSE{{ '' if trip.expense_count == 1 else 'S' }}</span>
             </div>
-          </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <!-- Empty State -->
-        <div class="card" style="text-align: center; padding: 40px 20px;">
-          <p style="font-size: 13px; color: #666; text-transform: uppercase; margin-bottom: 12px;">NO TRIPS RECORDED YET</p>
-          <button type="button" onclick="document.getElementById('createTripModal').classList.add('active')" class="btn btn-solid">
-            [+ CREATE FIRST TRIP]
-          </button>
-        </div>
-      {% endif %}
-    </div>
 
-    <!-- Right Column: Overall Balance Sidebar -->
-    <div class="card" style="position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; padding: 16px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 12px; flex-shrink: 0;">
-        <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.08em;">GLOBAL BALANCES</span>
-        <span class="badge badge-dim">ALL TRIPS</span>
-      </div>
-
-      <div class="panel-scroll" style="display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 160px); overflow-y: auto;">
-        {% for row in balances %}
-        {% set is_plus = row.balance > 0 %}
-        {% set is_minus = row.balance < 0 %}
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #0a0a0a; border: 1px solid #2a2a2a;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 14px;">{{ row.avatar }}</span>
-            <span style="font-size: 12px; font-weight: 500; color: #d4d4d4;">{{ row.name }}</span>
-          </div>
-          <div class="receipt-font" style="font-size: 12px; font-weight: 600;">
-            {% if is_plus %}
-            <span style="color: #0A8F20;">+{{ row.balance|currency }}</span>
-            {% elif is_minus %}
-            <span style="color: #d97706;">-{{ (-row.balance)|currency }}</span>
-            {% else %}
-            <span style="color: #555;">SETTLED</span>
+            {% if trip.trip_members %}
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;">
+              {% for m in trip.trip_members %}
+              <span style="font-size: 10px; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 2px 6px; color: #888;">
+                <span style="color: #0A8F20; font-weight: 700;">{{ m|ascii_avatar }}</span> {{ m.name }}
+              </span>
+              {% endfor %}
+            </div>
             {% endif %}
           </div>
-        </div>
+
+          <div style="display: flex; align-items: flex-end; justify-content: space-between; border-top: 1px solid #2a2a2a; padding-top: 8px; margin-top: 4px;">
+            <span style="font-size: 10px; color: #555; text-transform: uppercase;">TOTAL SPEND</span>
+            <span class="receipt-font" style="font-size: 15px; font-weight: 700; color: #0A8F20;">{{ trip.total_expenses|currency }}</span>
+          </div>
+        </a>
         {% endfor %}
       </div>
 
-      <div style="border-top: 1px solid #2a2a2a; padding-top: 10px; margin-top: 10px; flex-shrink: 0;">
-        <a href="{{ url_for('settle') }}" class="btn" style="width: 100%; justify-content: center; height: 34px;">
-          VIEW GLOBAL SETTLEMENT →
-        </a>
+      <!-- ── TRANSACTION LEDGER // RECENT BILLS FEED ── -->
+      {% if recent_expenses %}
+      <div class="card" style="padding: 16px; margin-top: 4px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #0A8F20; font-size: 12px; font-weight: 700;">[LEDGER]</span>
+            <span style="font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.06em;">
+              RECENT RECEIPTS & DISHES
+            </span>
+          </div>
+          <span style="font-size: 10.5px; color: #666;">ACROSS ALL TRIPS</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          {% for rx in recent_expenses %}
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #0a0a0a; border: 1px solid #222; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 180px;">
+              <span class="badge {{ 'badge-green' if rx.mode == 'restaurant' else 'badge-dim' }}" style="font-size: 9px;">
+                {{ '[REST]' if rx.mode == 'restaurant' else '[SMPL]' }}
+              </span>
+              <div>
+                <span style="font-size: 12.5px; font-weight: 600; color: #fff;">{{ rx.desc }}</span>
+                <div style="font-size: 10.5px; color: #666;">
+                  <span>{{ rx.trip_name }}</span> · <span>{{ rx.event_name }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="text-align: right; font-size: 11px;">
+                <span style="color: #777;">Paid by:</span>
+                <span style="color: #d4d4d4; font-weight: 600;">{{ rx.payer_name }}</span>
+              </div>
+              <span class="receipt-font" style="font-size: 14px; font-weight: 700; color: #0A8F20; min-width: 85px; text-align: right;">
+                {{ rx.amount|currency }}
+              </span>
+              <a href="{{ url_for('trip_view', trip_id=rx.trip_id) }}" class="btn btn-dim btn-sm" style="font-size: 10px; padding: 2px 6px;">
+                VIEW →
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
       </div>
+      {% endif %}
+
+      {% else %}
+      <!-- Empty State -->
+      <div class="card" style="text-align: center; padding: 40px 20px;">
+        <p style="font-size: 13px; color: #666; text-transform: uppercase; margin-bottom: 12px;">NO TRIPS RECORDED YET</p>
+        <button type="button" onclick="document.getElementById('createTripModal').classList.add('active')" class="btn btn-solid">
+          [+ CREATE FIRST TRIP]
+        </button>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right Column: Overall Balance Sidebar & System Controls -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      
+      <!-- Balance Card -->
+      <div class="card" style="display: flex; flex-direction: column; padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 12px;">
+          <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.08em;">GLOBAL BALANCES</span>
+          <span class="badge badge-dim">ALL TRIPS</span>
+        </div>
+
+        <div class="panel-scroll" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;">
+          {% for row in balances %}
+          {% set is_plus = row.balance > 0 %}
+          {% set is_minus = row.balance < 0 %}
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #0a0a0a; border: 1px solid #2a2a2a;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 10px; font-weight: 700; color: #0A8F20;">{{ row|ascii_avatar }}</span>
+              <span style="font-size: 12px; font-weight: 500; color: #d4d4d4;">{{ row.name }}</span>
+            </div>
+            <div class="receipt-font" style="font-size: 12px; font-weight: 600;">
+              {% if is_plus %}
+              <span style="color: #0A8F20;">+{{ row.balance|currency }}</span>
+              {% elif is_minus %}
+              <span style="color: #d97706;">-{{ (-row.balance)|currency }}</span>
+              {% else %}
+              <span style="color: #555;">SETTLED</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div style="border-top: 1px solid #2a2a2a; padding-top: 10px; margin-top: 10px;">
+          <a href="{{ url_for('settle') }}" class="btn" style="width: 100%; justify-content: center; height: 34px;">
+            VIEW GLOBAL SETTLEMENT →
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Typography & Tools Widget -->
+      <div class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px;">
+          <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">PROPORTIONAL SCALE</span>
+          <span style="font-size: 10px; color: #555;">ZOOM</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+          <button type="button" onclick="setFontScale('compact')" class="btn btn-dim btn-sm font-scale-btn" data-scale="compact" style="font-size: 10px; padding: 3px 0; justify-content: center;">88%</button>
+          <button type="button" onclick="setFontScale('normal')" class="btn btn-dim btn-sm font-scale-btn" data-scale="normal" style="font-size: 10px; padding: 3px 0; justify-content: center;">100%</button>
+          <button type="button" onclick="setFontScale('large')" class="btn btn-dim btn-sm font-scale-btn" data-scale="large" style="font-size: 10px; padding: 3px 0; justify-content: center;">115%</button>
+          <button type="button" onclick="setFontScale('xlarge')" class="btn btn-dim btn-sm font-scale-btn" data-scale="xlarge" style="font-size: 10px; padding: 3px 0; justify-content: center;">130%</button>
+        </div>
+        <div style="border-top: 1px solid #2a2a2a; padding-top: 8px; margin-top: 2px;">
+          <button type="button" onclick="openSettingsModal()" class="btn btn-dim btn-sm" style="width: 100%; justify-content: center;">
+            [OPEN FULL SYSTEM SETTINGS]
+          </button>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -134,55 +275,35 @@
           <input id="trip_name" name="trip_name" type="text" required maxlength="60" placeholder="e.g. Goa Vacation, Office Lunch, Movie Night">
         </div>
         <div class="sm:col-span-4">
-          <label for="trip_date_display" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">DATE (DD-MON-YYYY)</label>
-          <div style="position: relative; display: flex; align-items: center;">
-            <input id="trip_date_display" type="text" readonly placeholder="Pick date" style="cursor: pointer; padding-right: 32px;">
-            <input id="trip_date" name="trip_date" type="date" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;">
-            <button type="button" id="openCalendarBtn" class="btn btn-dim btn-sm" style="position: absolute; right: 4px; padding: 2px 6px;" title="Pick Date">📅</button>
-          </div>
+          <label for="trip_date" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">DATE</label>
+          <input id="trip_date" name="trip_date" type="date">
         </div>
       </div>
 
-      <!-- Group & Member Selection -->
-      <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px;">
-        <input type="hidden" name="trip_roster_mode" id="tripRosterMode" value="{{ 'saved_group' if groups else 'custom' }}">
-
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
-          <span style="font-size: 10px; color: #666; text-transform: uppercase;">WHO IS IN THIS TRIP?</span>
-          <div style="display: flex; gap: 4px;">
-            {% if groups %}
-            <button type="button" id="tabSavedGroup" class="mode-tab {{ 'active' if groups else '' }}" style="padding: 3px 8px; font-size: 10px;">
-              SAVED GROUP
-            </button>
-            {% endif %}
-            <button type="button" id="tabCustomGroup" class="mode-tab {{ '' if groups else 'active' }}" style="padding: 3px 8px; font-size: 10px;">
-              CUSTOM / BLANK
-            </button>
-          </div>
+      <!-- Group Selection -->
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+        {% if groups %}
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="tabSavedGroups" class="btn btn-solid btn-sm" style="flex: 1; justify-content: center;">USE SAVED GROUP</button>
+          <button type="button" id="tabCustomMembers" class="btn btn-dim btn-sm" style="flex: 1; justify-content: center;">CUSTOM MEMBERS</button>
         </div>
 
-        {% if groups %}
         <!-- Saved Group View -->
-        <div id="savedGroupSection" style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label for="groupPresetSelect" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">CHOOSE GROUP</label>
-              <select id="groupPresetSelect" name="group_id">
-                {% for g in groups %}
-                <option value="{{ g.id }}" data-members='{{ g.member_ids|tojson_safe }}' {{ 'selected' if loop.first else '' }}>
-                  {{ g.name }} ({{ g.member_ids|length }} members)
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div>
-              <label for="saved_new_members" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">+ EXTRA PEOPLE (OPTIONAL)</label>
-              <input id="saved_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha">
-            </div>
+        <div id="savedGroupSection" style="display: flex; flex-direction: column; gap: 10px;">
+          <div>
+            <label for="group_id" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">CHOOSE REUSABLE GROUP</label>
+            <select id="group_id" name="group_id">
+              <option value="">-- Select a group --</option>
+              {% for g in groups %}
+              <option value="{{ g.id }}" {{ 'selected' if loop.first else '' }}>
+                {{ g.name }} ({{ g.member_ids|length }} members)
+              </option>
+              {% endfor %}
+            </select>
           </div>
-          <div style="background: #141414; border: 1px solid #2a2a2a; padding: 8px; margin-top: 4px;">
-            <p style="font-size: 10px; color: #555; margin: 0 0 4px 0;">GROUP MEMBERS:</p>
-            <div id="groupPreviewChips" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
+          <div>
+            <label for="saved_new_members" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">+ EXTRA PEOPLE (OPTIONAL)</label>
+            <input id="saved_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha">
           </div>
         </div>
         {% endif %}
@@ -197,12 +318,11 @@
             </div>
           </div>
 
-          <div id="tripMembersList" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 180px; overflow-y: auto;" class="panel-scroll">
             {% for member in members %}
-            <label class="trip-member-chip chip select-none">
-              <input type="checkbox" name="member_ids" value="{{ member.id }}" class="member-checkbox sr-only">
-              <span>{{ member.avatar }}</span>
-              <span>{{ member.name }}</span>
+            <label class="chip" style="justify-content: space-between;">
+              <span><span style="color: #0A8F20; font-weight: 700;">{{ member|ascii_avatar }}</span> {{ member.name }}</span>
+              <input type="checkbox" name="member_ids" value="{{ member.id }}" class="sr-only" onchange="this.closest('.chip').classList.toggle('active', this.checked)">
             </label>
             {% endfor %}
           </div>
@@ -218,7 +338,6 @@
             </div>
           </div>
         </div>
-
       </div>
 
       {% if unused_members %}
@@ -226,7 +345,9 @@
         <span style="color: #d97706;">
           <strong>{{ unused_members|length }} person(s)</strong> with 0 expenses across trips.
         </span>
-        <button type="submit" form="cleanupForm" class="btn btn-warn btn-sm">CLEAN UP</button>
+        <button type="submit" formaction="{{ url_for('cleanup_members') }}" formmethod="post" class="btn btn-dim btn-sm" style="font-size: 10px;">
+          CLEANUP UNUSED
+        </button>
       </div>
       {% endif %}
 
@@ -235,18 +356,24 @@
         <button type="submit" class="btn btn-solid">[+ CREATE TRIP]</button>
       </div>
     </form>
-    {% if unused_members %}
-    <form id="cleanupForm" method="post" action="{{ url_for('cleanup_members') }}" style="display: none;"></form>
-    {% endif %}
   </div>
 </div>
+{% endblock %}
 
-<script id="allMembersJson" type="application/json">{{ members|tojson_safe }}</script>
+{% block scripts %}
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const allMembers = JSON.parse(document.getElementById('allMembersJson')?.textContent || '[]');
-    const memberMap = new Map(allMembers.map(m => [m.id, m]));
+  // Live Clock in Retro Terminal Header
+  function updateClock() {
+    const el = document.getElementById('liveClock');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = now.toTimeString().split(' ')[0] + ' UTC' + (now.getTimezoneOffset() <= 0 ? '+' : '-') + Math.abs(Math.round(now.getTimezoneOffset() / 60));
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
 
+  // Create Trip Modal Logic
+  document.addEventListener('DOMContentLoaded', () => {
     const tripModal = document.getElementById('createTripModal');
     const openModalBtn = document.getElementById('openNewTripBtn');
     const closeModalBtn = document.getElementById('closeTripModalBtn');
@@ -255,7 +382,7 @@
     if (openModalBtn) openModalBtn.addEventListener('click', () => tripModal.classList.add('active'));
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => tripModal.classList.remove('active'));
     if (cancelModalBtn) cancelModalBtn.addEventListener('click', () => tripModal.classList.remove('active'));
-    
+
     // Close on backdrop click
     if (tripModal) {
       tripModal.addEventListener('click', (e) => {
@@ -263,123 +390,48 @@
       });
     }
 
-    const tripRosterMode = document.getElementById('tripRosterMode');
-    const tabSaved = document.getElementById('tabSavedGroup');
-    const tabCustom = document.getElementById('tabCustomGroup');
-    const savedSection = document.getElementById('savedGroupSection');
-    const customSection = document.getElementById('customGroupSection');
-    const groupSelect = document.getElementById('groupPresetSelect');
-    const previewChips = document.getElementById('groupPreviewChips');
-
-    const memberBoxes = document.querySelectorAll('.member-checkbox');
-    const toggleAllBtn = document.getElementById('toggleAllTripMembers');
-    const clearAllBtn = document.getElementById('clearAllTripMembers');
-
-    function updateGroupPreview() {
-      if (!groupSelect || !previewChips) return;
-      const opt = groupSelect.selectedOptions[0];
-      if (!opt || !opt.dataset.members) {
-        previewChips.innerHTML = '<span style="font-size:11px;color:#555;">No members selected.</span>';
-        return;
-      }
-      try {
-        const mids = JSON.parse(opt.dataset.members);
-        previewChips.innerHTML = mids.map(id => {
-          const m = memberMap.get(id);
-          if (!m) return '';
-          return `<span class="badge badge-green" style="font-size:10px;">${m.avatar} ${m.name}</span>`;
-        }).join('');
-      } catch (e) {
-        console.error('Error rendering group preview:', e);
-      }
-    }
+    // Toggle Saved vs Custom group tabs
+    const tabSaved = document.getElementById('tabSavedGroups');
+    const tabCustom = document.getElementById('tabCustomMembers');
+    const secSaved = document.getElementById('savedGroupSection');
+    const secCustom = document.getElementById('customGroupSection');
 
     if (tabSaved && tabCustom) {
       tabSaved.addEventListener('click', () => {
-        if (tripRosterMode) tripRosterMode.value = 'saved_group';
-        tabSaved.classList.add('active');
-        tabCustom.classList.remove('active');
-        if (savedSection) savedSection.style.display = 'flex';
-        if (customSection) customSection.classList.add('hidden');
+        tabSaved.classList.add('btn-solid'); tabSaved.classList.remove('btn-dim');
+        tabCustom.classList.remove('btn-solid'); tabCustom.classList.add('btn-dim');
+        secSaved.classList.remove('hidden');
+        secCustom.classList.add('hidden');
       });
 
       tabCustom.addEventListener('click', () => {
-        if (tripRosterMode) tripRosterMode.value = 'custom';
-        tabCustom.classList.add('active');
-        tabSaved.classList.remove('active');
-        if (customSection) customSection.classList.remove('hidden');
-        if (savedSection) savedSection.style.display = 'none';
+        tabCustom.classList.add('btn-solid'); tabCustom.classList.remove('btn-dim');
+        tabSaved.classList.remove('btn-solid'); tabSaved.classList.add('btn-dim');
+        secCustom.classList.remove('hidden');
+        secSaved.classList.add('hidden');
+        // Clear saved group select
+        const grpSel = document.getElementById('group_id');
+        if (grpSel) grpSel.value = '';
       });
     }
 
-    if (groupSelect) {
-      groupSelect.addEventListener('change', updateGroupPreview);
-      updateGroupPreview();
-    }
-
-    function updateChipStyle(box) {
-      const chip = box.closest('.trip-member-chip');
-      if (!chip) return;
-      if (box.checked) {
-        chip.classList.add('active');
-      } else {
-        chip.classList.remove('active');
-      }
-    }
-
-    memberBoxes.forEach(box => {
-      box.addEventListener('change', () => updateChipStyle(box));
-      updateChipStyle(box);
-    });
-
+    // Select/Clear all member chips in modal
+    const toggleAllBtn = document.getElementById('toggleAllTripMembers');
+    const clearAllBtn = document.getElementById('clearAllTripMembers');
     if (toggleAllBtn) {
       toggleAllBtn.addEventListener('click', () => {
-        memberBoxes.forEach(box => { box.checked = true; updateChipStyle(box); });
+        document.querySelectorAll('#customGroupSection input[type="checkbox"]').forEach(cb => {
+          cb.checked = true;
+          cb.closest('.chip')?.classList.add('active');
+        });
       });
     }
-
     if (clearAllBtn) {
       clearAllBtn.addEventListener('click', () => {
-        memberBoxes.forEach(box => { box.checked = false; updateChipStyle(box); });
-      });
-    }
-
-    // ── Date Picker & DD-Mon-YYYY Bridge ──
-    const dateInput = document.getElementById('trip_date');
-    const dateDisplay = document.getElementById('trip_date_display');
-    const openCalBtn = document.getElementById('openCalendarBtn');
-
-    function formatDateToDDMonYYYY(val) {
-      if (!val) return '';
-      const parts = val.split('-');
-      if (parts.length === 3) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const mIdx = parseInt(parts[1], 10) - 1;
-        if (mIdx >= 0 && mIdx < 12) {
-          return `${parts[2]}-${months[mIdx]}-${parts[0]}`;
-        }
-      }
-      return val;
-    }
-
-    if (dateInput && dateDisplay) {
-      const triggerPicker = () => {
-        try {
-          if (typeof dateInput.showPicker === 'function') {
-            dateInput.showPicker();
-          } else {
-            dateInput.focus();
-          }
-        } catch (e) {
-          dateInput.focus();
-        }
-      };
-
-      dateDisplay.addEventListener('click', triggerPicker);
-      if (openCalBtn) openCalBtn.addEventListener('click', triggerPicker);
-
-      dateInput.addEventListener('change', () => {
-        dateDisplay.value = formatDateToDDMonYYYY(dateInput.value);
+        document.querySelectorAll('#customGroupSection input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+          cb.closest('.chip')?.classList.remove('active');
+        });
       });
     }
   });

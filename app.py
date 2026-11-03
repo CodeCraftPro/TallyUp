@@ -12,17 +12,17 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 DB_FILE = os.path.join(DATA_DIR, "db.json")
 
 TWOPLACES = Decimal("0.01")
-AVATARS = ["🧑", "👩", "👨", "🧑‍💻", "👩‍💻", "🧔", "👱", "🧒", "👩‍🎨", "🧑‍🚀"]
+AVATARS = ["[U1]", "[U2]", "[U3]", "[U4]", "[U5]", "[U6]", "[U7]", "[U8]", "[U9]", "[U10]"]
 EVENT_TYPES = {
-    "dinner": {"icon": "🍽️", "label": "Dinner"},
-    "lunch": {"icon": "🥗", "label": "Lunch"},
-    "breakfast": {"icon": "🥞", "label": "Breakfast"},
-    "drinks": {"icon": "🍻", "label": "Drinks"},
-    "resort": {"icon": "🏨", "label": "Resort / Stay"},
-    "transport": {"icon": "🚗", "label": "Transport"},
-    "activity": {"icon": "🎢", "label": "Activity"},
-    "shopping": {"icon": "🛍️", "label": "Shopping"},
-    "other": {"icon": "📦", "label": "Other"},
+    "dinner": {"icon": "[DINNER]", "label": "Dinner"},
+    "lunch": {"icon": "[LUNCH]", "label": "Lunch"},
+    "breakfast": {"icon": "[BRKFAST]", "label": "Breakfast"},
+    "drinks": {"icon": "[DRINKS]", "label": "Drinks"},
+    "resort": {"icon": "[STAY]", "label": "Resort / Stay"},
+    "transport": {"icon": "[TRANS]", "label": "Transport"},
+    "activity": {"icon": "[ACTVTY]", "label": "Activity"},
+    "shopping": {"icon": "[SHOP]", "label": "Shopping"},
+    "other": {"icon": "[MISC]", "label": "Other"},
 }
 
 
@@ -690,6 +690,21 @@ def format_date_filter(value):
             return val_str
 
 
+@app.template_filter("ascii_avatar")
+def ascii_avatar_filter(value):
+    if not value:
+        return "[?]"
+    name = value.get("name", "") if isinstance(value, dict) else str(value)
+    parts = [p for p in name.split() if p]
+    if len(parts) >= 2:
+        tag = (parts[0][0] + parts[1][0]).upper()
+    elif parts:
+        tag = parts[0][:2].upper()
+    else:
+        tag = "U"
+    return f"[{tag}]"
+
+
 @app.template_filter("tojson_safe")
 def tojson_safe_filter(value):
     from markupsafe import Markup
@@ -704,7 +719,10 @@ def tojson_safe_filter(value):
 
 @app.context_processor
 def inject_globals():
-    return {"event_types": EVENT_TYPES}
+    return {
+        "event_types": EVENT_TYPES,
+        "all_app_members": get_members(),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -720,10 +738,12 @@ def dashboard():
         return redirect(url_for("setup"))
 
     trips = get_trips()
+    groups = get_groups()
     balances = compute_all_balances(members, trips, apply_settlements=True)
 
     # Add stats to each trip
     trip_stats = []
+    all_expenses_list = []
     for trip in trips:
         total_expenses = Decimal("0")
         expense_count = 0
@@ -732,18 +752,54 @@ def dashboard():
             for expense in event.get("expenses", []):
                 expense_count += 1
                 if expense.get("mode") == "restaurant":
-                    total_expenses += money(expense.get("total_bill", "0"))
+                    amt = money(expense.get("total_bill", "0"))
                 else:
-                    total_expenses += money(expense.get("amount", "0"))
+                    amt = money(expense.get("amount", "0"))
+                total_expenses += amt
+                payer_m = next((m for m in members if m["id"] == expense.get("paid_by")), None)
+                all_expenses_list.append({
+                    "trip_id": trip["id"],
+                    "trip_name": trip["name"],
+                    "event_name": event.get("name", "Event"),
+                    "desc": expense.get("description", "Expense"),
+                    "amount": amt,
+                    "payer_name": payer_m["name"] if payer_m else "Unknown",
+                    "payer_id": expense.get("paid_by", ""),
+                    "date": expense.get("date") or event.get("date") or trip.get("date") or "",
+                    "mode": expense.get("mode", "simple"),
+                    "has_items": bool(expense.get("items")),
+                })
+
+        # Ensure group name is present
+        g_name = trip.get("group_name")
+        if not g_name:
+            t_mids = set(trip.get("member_ids") or [])
+            for g in groups:
+                if set(g.get("member_ids", [])) == t_mids:
+                    g_name = g.get("name")
+                    break
+            if not g_name:
+                g_name = "PERSONAL" if len(t_mids) <= 2 else "CUSTOM"
+
         trip_stats.append({
             **trip,
+            "group_name": g_name,
             "trip_members": get_trip_members(trip, members),
             "total_expenses": money(total_expenses),
             "expense_count": expense_count,
             "event_count": event_count,
         })
 
-    groups = get_groups()
+    # Telemetry aggregate metrics
+    total_spent_all = sum((t["total_expenses"] for t in trip_stats), Decimal("0"))
+    total_expenses_all = sum(t["expense_count"] for t in trip_stats)
+    total_events_all = sum(t["event_count"] for t in trip_stats)
+    net_unsettled = sum((b["balance"] for b in balances if b["balance"] > 0), Decimal("0"))
+
+    # Recent 6 expenses for the terminal ledger feed
+    recent_expenses = all_expenses_list[-6:]
+    recent_expenses.reverse()
+
     unused_members = get_unused_members(members, trips)
 
     return render_template(
@@ -753,6 +809,11 @@ def dashboard():
         balances=balances,
         groups=groups,
         unused_members=unused_members,
+        total_spent_all=total_spent_all,
+        total_expenses_all=total_expenses_all,
+        total_events_all=total_events_all,
+        net_unsettled=net_unsettled,
+        recent_expenses=recent_expenses,
     )
 
 
@@ -862,31 +923,82 @@ def manage_trip_members(trip_id):
         return redirect(url_for("dashboard"))
 
     all_members = get_members()
+    old_trip_mids = set(trip.get("member_ids") or [])
     selected_ids = request.form.getlist("member_ids")
 
-    # Add new typed names
+    # Add new typed names (reuse existing member if matching name exists)
     new_names_raw = request.form.get("new_members", "").strip()
     if new_names_raw:
         new_names = [n.strip() for n in new_names_raw.split(",") if n.strip()]
         for idx, n in enumerate(new_names):
-            new_id = str(uuid4())
-            new_m = {
-                "id": new_id,
-                "name": n,
-                "avatar": AVATARS[(len(all_members) + idx) % len(AVATARS)],
-            }
-            all_members.append(new_m)
-            selected_ids.append(new_id)
+            existing = next((m for m in all_members if m["name"].strip().lower() == n.lower()), None)
+            if existing:
+                if existing["id"] not in selected_ids:
+                    selected_ids.append(existing["id"])
+            else:
+                new_id = str(uuid4())
+                new_m = {
+                    "id": new_id,
+                    "name": n,
+                    "avatar": AVATARS[(len(all_members) + idx) % len(AVATARS)],
+                }
+                all_members.append(new_m)
+                selected_ids.append(new_id)
         save_members(all_members)
 
     if not selected_ids:
         flash("Trip must have at least one member.", "error")
         return redirect(url_for("trip_view", trip_id=trip_id))
 
+    new_added_ids = set(selected_ids) - old_trip_mids
+    sync_expenses = request.form.get("sync_expenses") in ["1", "on", "true"]
+
     trip["member_ids"] = selected_ids
+
+    # Optional group name update
+    new_group_name = request.form.get("group_name", "").strip()
+    if new_group_name:
+        trip["group_name"] = new_group_name
+
+    # If new members were added and sync is enabled:
+    if new_added_ids and sync_expenses:
+        for ev in trip.get("events", []):
+            for exp in ev.get("expenses", []):
+                cur_consumers = set(exp.get("consumers") or [])
+                # If expense was shared among old members, add new members
+                for nid in new_added_ids:
+                    if nid not in cur_consumers:
+                        exp.setdefault("consumers", []).append(nid)
+
+                # For items: if an item was shared by the whole table or multiple old members, sync
+                for it in exp.get("items", []):
+                    it_consumers = set(it.get("consumed_by") or [])
+                    # If item had 2 or more consumers or was shared by all old members, include new members
+                    if old_trip_mids and (it_consumers.issubset(old_trip_mids) and len(it_consumers) >= min(len(old_trip_mids), 2)):
+                        for nid in new_added_ids:
+                            if nid not in it_consumers:
+                                it.setdefault("consumed_by", []).append(nid)
+
     update_trip(trip)
-    flash("Trip members updated!", "success")
+    flash(f"Trip roster updated ({len(selected_ids)} members)!", "success")
     return redirect(url_for("trip_view", trip_id=trip_id))
+
+
+@app.route("/settings/upi", methods=["POST"])
+def update_upi_settings():
+    init_state()
+    members = get_members()
+    updated_count = 0
+    for m in members:
+        upi_key = f"upi_{m['id']}"
+        if upi_key in request.form:
+            val = request.form[upi_key].strip()
+            if m.get("upi_id") != val:
+                m["upi_id"] = val
+                updated_count += 1
+    save_members(members)
+    flash(f"Updated UPI directory ({updated_count} updated)!", "success")
+    return redirect(request.referrer or url_for("dashboard"))
 
 
 @app.route("/trip/<trip_id>")
