@@ -42,10 +42,11 @@ def load_db():
                         "members": data.get("members", []),
                         "trips": data.get("trips", []),
                         "groups": data.get("groups", []),
+                        "llm_config": data.get("llm_config", {}),
                     }
         except Exception as e:
             print(f"Error loading DB: {e}")
-    return {"members": [], "trips": [], "groups": []}
+    return {"members": [], "trips": [], "groups": [], "llm_config": {}}
 
 
 def save_db(data):
@@ -248,6 +249,28 @@ def get_groups():
 def save_groups(groups):
     db = load_db()
     db["groups"] = groups
+    save_db(db)
+
+
+def get_llm_config():
+    """Retrieve receipt AI configuration with environment variable fallbacks."""
+    db = load_db()
+    cfg = db.get("llm_config", {})
+    provider = cfg.get("provider") or os.environ.get("LLM_PROVIDER") or "gemini"
+    default_model = "gemini-1.5-flash" if provider == "gemini" else ("gpt-4o-mini" if provider == "openai" else ("claude-3-5-sonnet-20241022" if provider == "claude" else ""))
+    return {
+        "engine": cfg.get("engine") or os.environ.get("LLM_ENGINE") or "local",
+        "provider": provider,
+        "api_key": cfg.get("api_key") or os.environ.get("LLM_API_KEY") or "",
+        "model": cfg.get("model") or os.environ.get("LLM_MODEL") or default_model,
+        "base_url": cfg.get("base_url") or os.environ.get("LLM_BASE_URL") or "",
+    }
+
+
+def save_llm_config(cfg):
+    """Persist receipt AI configuration to db.json."""
+    db = load_db()
+    db["llm_config"] = cfg
     save_db(db)
 
 
@@ -765,6 +788,7 @@ def inject_globals():
         "all_app_members": get_members(),
         "all_app_groups": get_groups(),
         "all_app_trips": get_trips(),
+        "app_llm_config": get_llm_config(),
     }
 
 
@@ -1086,6 +1110,27 @@ def update_upi_settings():
                 updated_count += 1
     save_members(members)
     flash(f"Updated UPI directory ({updated_count} updated)!", "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.route("/settings/ai", methods=["POST"])
+def update_ai_settings():
+    init_state()
+    engine = request.form.get("engine", "local").strip()
+    provider = request.form.get("provider", "gemini").strip()
+    api_key = request.form.get("api_key", "").strip()
+    model = request.form.get("model", "").strip()
+    base_url = request.form.get("base_url", "").strip()
+
+    cfg = {
+        "engine": engine,
+        "provider": provider,
+        "api_key": api_key,
+        "model": model,
+        "base_url": base_url,
+    }
+    save_llm_config(cfg)
+    flash(f"Receipt AI settings saved: Engine set to {engine.upper()} ({provider.upper()})!", "success")
     return redirect(request.referrer or url_for("dashboard"))
 
 
@@ -2069,7 +2114,20 @@ def scan_receipt():
         file.save(temp_path)
 
     try:
-        parsed = parse_receipt_image(temp_path)
+        llm_config = get_llm_config()
+        parsed = None
+        if llm_config.get("engine") == "llm" and (llm_config.get("api_key") or llm_config.get("provider") == "custom"):
+            try:
+                import llm_scanner
+                parsed = llm_scanner.scan_receipt_with_llm(temp_path, llm_config)
+            except Exception as llm_err:
+                print(f"[!] Custom LLM scan failed: {llm_err}. Gracefully falling back to RapidOCR.")
+                parsed = parse_receipt_image(temp_path)
+                parsed["engine_notice"] = f"AI fallback: {str(llm_err)[:60]}. Parsed via local RapidOCR."
+        if not parsed:
+            parsed = parse_receipt_image(temp_path)
+            if "engine" not in parsed:
+                parsed["engine"] = "RapidOCR (Local PP-OCRv4)"
         return jsonify({"success": True, "data": parsed})
     except Exception as e:
         import traceback

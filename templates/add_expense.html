@@ -849,9 +849,14 @@
           <p style="font-size: 11.5px; color: #888; margin: 0 0 14px 0;">Supports JPG, PNG, WEBP · 100% Local RapidOCR
             Engine</p>
           <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
-            <span class="badge badge-green">⚡ RapidOCR (~0.7s)</span>
+            {% if app_llm_config and app_llm_config.engine == 'llm' %}
+            <span class="badge badge-green">[AI] {{ app_llm_config.provider|upper }} ({{ app_llm_config.model or 'Vision' }})</span>
+            <span class="badge badge-dim">[LLM PIPELINE]</span>
+            {% else %}
+            <span class="badge badge-green">[OCR] RapidOCR (~0.7s)</span>
             <span class="badge badge-dim">[LOCAL] 100% Private (0 Cloud Calls)</span>
             <span class="badge badge-dim">₹0 Free</span>
+            {% endif %}
           </div>
         </div>
       </div>

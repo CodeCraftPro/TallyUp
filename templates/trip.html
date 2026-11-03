@@ -69,9 +69,13 @@
       <div class="card" style="padding: 14px 18px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-            FAST EVENT CREATION // LOCAL OCR
+            FAST EVENT CREATION // RECEIPT SCANNER
           </span>
-          <span class="badge badge-green">RAPIDOCR (~0.7s)</span>
+          {% if app_llm_config and app_llm_config.engine == 'llm' %}
+          <span class="badge badge-green">[AI: {{ app_llm_config.provider|upper }}]</span>
+          {% else %}
+          <span class="badge badge-green">[LOCAL RAPIDOCR (~0.7s)]</span>
+          {% endif %}
         </div>
 
         <div id="eventReceiptDropzone"
@@ -90,7 +94,7 @@
         <div id="eventScanLoading"
           style="display: none; align-items: center; gap: 10px; background: #0a0a0a; border: 1px solid #0A8F20; padding: 10px; margin-top: 8px; font-size: 12px; color: #0A8F20;">
           <span>▪</span>
-          <span>SCANNING RECEIPT LOCALLY WITH RAPIDOCR... EXTRACTING VENUE & ITEMS</span>
+          <span>DISSECTING RECEIPT DATA... EXTRACTING VENUE, DISHES & TOTALS</span>
         </div>
 
         <!-- Scanned Event Preview Card -->
