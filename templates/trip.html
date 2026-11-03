@@ -3,7 +3,7 @@
 
 {% block content %}
 <div style="padding: 14px 20px; max-width: 1440px; margin: 0 auto; width: 100%;">
-  
+
   <!-- ═══ TRIP SUBHEADER ═══ -->
   <div class="card" style="margin-bottom: 14px; padding: 14px 18px;">
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
@@ -56,7 +56,7 @@
   </div>
 
   <!-- ═══ MAIN 2-COLUMN LAYOUT: EVENTS (LEFT) & SETTLEMENT SIDEBAR (RIGHT) ═══ -->
-  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;" class="lg:grid-cols-[1fr_360px]">
+  <div class="trip-layout">
     
     <!-- ── LEFT COLUMN: EVENTS WITH NESTED EXPENSES ── -->
     <div style="display: flex; flex-direction: column; gap: 14px;">
@@ -390,8 +390,8 @@
       </div>
 
     </div>
-
   </div>
+
 </div>
 
 <!-- ═══ MODAL: ADD EVENT ═══ -->
@@ -399,7 +399,8 @@
   <div class="modal-content" style="max-width: 480px; padding: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
       <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">ADD AN EVENT</span>
-      <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
+      <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')"
+        class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
     <form method="post" action="{{ url_for('create_event', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 14px;">
@@ -428,7 +429,8 @@
   <div class="modal-content" style="max-width: 440px; padding: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
       <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">EDIT EVENT</span>
-      <button type="button" onclick="closeEditEventModal()" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
+      <button type="button" onclick="closeEditEventModal()" class="btn btn-dim btn-sm"
+        style="padding: 1px 6px;">✕</button>
     </div>
     <form id="editEventForm" method="post" action="" style="display: flex; flex-direction: column; gap: 14px;">
       <div>
@@ -459,7 +461,8 @@
         <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">TRIP ROSTER</span>
         <p style="font-size: 11px; color: #888; margin: 2px 0 0 0;">Manage participants for {{ trip.name }}</p>
       </div>
-      <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
+      <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')"
+        class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
     <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 14px;">
@@ -470,7 +473,8 @@
           {% set in_trip = m.id in trip.member_ids if trip.member_ids else true %}
           <label class="chip {{ 'active' if in_trip else '' }}" style="justify-content: space-between;">
             <span>{{ m.avatar }} {{ m.name }}</span>
-            <input type="checkbox" name="member_ids" value="{{ m.id }}" class="sr-only" {{ 'checked' if in_trip else '' }} onchange="this.closest('.chip').classList.toggle('active', this.checked)">
+            <input type="checkbox" name="member_ids" value="{{ m.id }}" class="sr-only" {{ 'checked' if in_trip else ''
+              }} onchange="this.closest('.chip').classList.toggle('active', this.checked)">
           </label>
           {% endfor %}
         </div>

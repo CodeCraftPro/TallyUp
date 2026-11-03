@@ -197,6 +197,68 @@
     .toast-success { border-color: #0A8F20; color: #0A8F20; }
     .toast-error { border-color: #dc2626; color: #dc2626; }
 
+    /* ─── DESKTOP MULTI-COLUMN LAYOUTS (PURE CSS BREAKPOINTS) ─── */
+    .app-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      width: 100%;
+    }
+    .trip-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .trip-layout {
+        grid-template-columns: minmax(0, 1fr) 380px !important;
+        gap: 20px !important;
+      }
+    }
+    @media (min-width: 1280px) {
+      .trip-layout {
+        grid-template-columns: minmax(0, 1fr) 420px !important;
+        gap: 24px !important;
+      }
+    }
+    .form-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .form-layout {
+        grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr) !important;
+        gap: 20px !important;
+      }
+    }
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .dashboard-layout {
+        grid-template-columns: minmax(0, 1fr) 340px !important;
+        gap: 20px !important;
+      }
+    }
+    .settlement-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .settlement-layout {
+        grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr) !important;
+        gap: 20px !important;
+      }
+    }
+
     /* ─── STATUS BADGES ─── */
     .badge {
       display: inline-flex;
