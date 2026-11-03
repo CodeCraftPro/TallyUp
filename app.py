@@ -141,13 +141,34 @@ def save_trips(trips):
         session.modified = True
 
 
-def save_members(members):
+def save_members(members, allow_purge=False):
     db = load_db()
+    existing_members = db.get("members", [])
+    if not allow_purge and existing_members:
+        # Prevent accidental truncation: if any existing member is omitted, retain them!
+        incoming_ids = {m["id"] for m in members if isinstance(m, dict) and "id" in m}
+        for em in existing_members:
+            if em.get("id") and em["id"] not in incoming_ids:
+                members.append(em)
     db["members"] = members
     save_db(db)
     if has_request_context():
         session["members"] = members
         session.modified = True
+
+
+def update_member_upi(member_id, upi_id):
+    """Safely updates a member's UPI ID across the global directory without affecting any other members."""
+    if not member_id or not upi_id:
+        return
+    clean_upi = upi_id.strip()
+    if not clean_upi:
+        return
+    all_members = get_members()
+    target = next((m for m in all_members if m["id"] == member_id), None)
+    if target and target.get("upi_id") != clean_upi:
+        target["upi_id"] = clean_upi
+        save_members(all_members)
 
 
 def get_used_member_ids(trips=None):
@@ -1456,10 +1477,7 @@ def add_expense(trip_id):
             payer_upi = request.form.get("payer_upi", "").strip()
 
             if payer_upi:
-                payer_member = find_member(paid_by)
-                if payer_member:
-                    payer_member["upi_id"] = payer_upi
-                    save_members(members)
+                update_member_upi(paid_by, payer_upi)
 
             is_treat = request.form.get("is_treat") in ["true", "1", "on"]
 
@@ -1540,10 +1558,7 @@ def add_expense(trip_id):
 
             payer_upi = request.form.get("payer_upi", "").strip()
             if payer_upi:
-                payer_member = find_member(paid_by)
-                if payer_member:
-                    payer_member["upi_id"] = payer_upi
-                    save_members(members)
+                update_member_upi(paid_by, payer_upi)
 
             is_treat = request.form.get("is_treat") in ["true", "1", "on"]
 
@@ -1679,10 +1694,7 @@ def edit_expense(trip_id, expense_id):
             payer_upi = request.form.get("payer_upi", "").strip()
 
             if payer_upi:
-                payer_member = find_member(paid_by)
-                if payer_member:
-                    payer_member["upi_id"] = payer_upi
-                    save_members(members)
+                update_member_upi(paid_by, payer_upi)
 
             is_treat = request.form.get("is_treat") in ["true", "1", "on"]
 
@@ -1749,10 +1761,7 @@ def edit_expense(trip_id, expense_id):
 
             payer_upi = request.form.get("payer_upi", "").strip()
             if payer_upi:
-                payer_member = find_member(paid_by)
-                if payer_member:
-                    payer_member["upi_id"] = payer_upi
-                    save_members(members)
+                update_member_upi(paid_by, payer_upi)
 
             is_treat = request.form.get("is_treat") in ["true", "1", "on"]
 
@@ -1979,7 +1988,7 @@ def delete_member(member_id):
         return redirect(url_for("dashboard"))
 
     all_members = [m for m in all_members if m["id"] != member_id]
-    save_members(all_members)
+    save_members(all_members, allow_purge=True)
     groups = get_groups()
     for g in groups:
         g["member_ids"] = [mid for mid in g.get("member_ids", []) if mid != member_id]
