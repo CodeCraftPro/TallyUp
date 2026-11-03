@@ -2,68 +2,67 @@
 {% block title %}TallyUp — {{ 'Edit Expense' if is_edit else 'Add Expense' }}{% endblock %}
 
 {% block content %}
-<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 10px 16px;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px 20px;">
   
   <!-- Subheader -->
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; flex-wrap: wrap; gap: 8px;">
-    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
       <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="btn btn-dim btn-sm">← {{ trip.name|upper }}</a>
-      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em; text-transform: uppercase;">
+      <span style="font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.06em; text-transform: uppercase;">
         {{ 'EDIT EXPENSE' if is_edit else 'ADD EXPENSE' }}
       </span>
       {% if not is_edit %}
-      <div style="display: flex; gap: 4px; margin-left: 6px;">
+      <div style="display: flex; gap: 6px; margin-left: 4px;">
         <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=request.args.get('event_id', '')) }}"
-          class="mode-tab {{ 'active' if mode == 'simple' else '' }}" style="padding: 2px 8px; font-size: 10px;">
+          class="mode-tab {{ 'active' if mode == 'simple' else '' }}" style="padding: 4px 12px; font-size: 11px;">
           💰 SIMPLE SPLIT
         </a>
         <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=request.args.get('event_id', '')) }}"
-          class="mode-tab {{ 'active' if mode == 'restaurant' else '' }}" style="padding: 2px 8px; font-size: 10px;">
+          class="mode-tab {{ 'active' if mode == 'restaurant' else '' }}" style="padding: 4px 12px; font-size: 11px;">
           🍽️ RESTAURANT BILL
         </a>
       </div>
       {% else %}
-      <span class="badge badge-dim" style="font-size: 9px;">
+      <span class="badge badge-green" style="font-size: 10px;">
         MODE: {{ 'RESTAURANT BILL' if mode == 'restaurant' else 'SIMPLE SPLIT' }}
       </span>
       {% endif %}
     </div>
 
     <div>
-      <button type="button" id="openScannerBtn" class="trigger-scanner-btn btn btn-solid btn-sm" style="font-size: 10px;">
+      <button type="button" id="openScannerBtn" class="trigger-scanner-btn btn btn-solid btn-sm">
         [📷 SCAN RECEIPT OCR]
       </button>
     </div>
   </div>
 
 {% if mode == 'simple' %}
-<!-- ========== SIMPLE MODE (2-COLUMN HIGH-DENSITY LAYOUT) ========== -->
-<form method="post" id="simpleExpenseForm" class="fade-in"
+<!-- ========== SIMPLE MODE (2-COLUMN RETRO TERMINAL LAYOUT) ========== -->
+<form method="post" id="simpleExpenseForm"
   action="{{ url_for('edit_expense', trip_id=trip.id, expense_id=expense.id) if is_edit else url_for('add_expense', trip_id=trip.id, mode='simple') }}">
   <input type="hidden" name="mode" value="simple">
   <input type="hidden" name="items_data" id="itemsData" value="[]">
 
-  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden;" class="lg:grid-cols-12">
-    <!-- LEFT COLUMN: Inputs (7 cols) -->
-    <div class="panel-scroll lg:col-span-7" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
-      <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">💰</span>
-            <h2 class="text-base font-semibold text-white">{{ 'Edit Simple Expense' if is_edit else 'Simple Expense' }}
-            </h2>
+  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;" class="lg:grid-cols-[1.2fr_1fr]">
+    <!-- LEFT COLUMN: Inputs -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 15px;">💰</span>
+            <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
+              {{ 'EDIT SIMPLE EXPENSE' if is_edit else 'SIMPLE EXPENSE' }}
+            </span>
           </div>
-          <span class="text-xs text-slate-400">{{ trip.name }}</span>
+          <span style="font-size: 11px; color: #888; text-transform: uppercase;">{{ trip.name }}</span>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label for="s_event_id" class="mb-1.5 block text-xs font-medium text-slate-300">Event</label>
-            <select id="s_event_id" name="event_id"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-sky-400/60">
+            <label for="s_event_id" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">EVENT</label>
+            <select id="s_event_id" name="event_id">
               {% for event in events %}
-              <option value="{{ event.id }}" {% if (is_edit and target_event and target_event.id==event.id) or (not
-                is_edit and request.args.get('event_id')==event.id) %}selected{% elif loop.first %}selected{% endif %}>
+              <option value="{{ event.id }}" {% if (is_edit and target_event and target_event.id==event.id) or (not is_edit and request.args.get('event_id')==event.id) %}selected{% elif loop.first %}selected{% endif %}>
                 {{ event_types.get(event.type, event_types.other).icon }} {{ event.name }}
               </option>
               {% endfor %}
@@ -71,57 +70,41 @@
           </div>
 
           <div>
-            <label for="s_description" class="mb-1.5 block text-xs font-medium text-slate-300">Description</label>
+            <label for="s_description" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">DESCRIPTION</label>
             <input id="s_description" name="description" type="text" required maxlength="80"
-              placeholder="e.g. Pizza, Uber, Groceries, Hotel..." value="{{ expense.description if is_edit else '' }}"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+              placeholder="e.g. Pizza, Uber, Groceries, Hotel..." value="{{ expense.description if is_edit else '' }}">
           </div>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label for="s_amount" class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Total Amount</span>
-            </label>
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+            <label for="s_amount" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">TOTAL AMOUNT</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
               <input id="s_amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"
-                value="{{ expense.amount if is_edit else '' }}"
-                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+                value="{{ expense.amount if is_edit else '' }}" style="padding-left: 26px; font-weight: 700;">
             </div>
           </div>
 
           <div>
-            <label for="s_date_display" class="mb-1.5 block text-xs font-medium text-slate-300">Date
-              (DD-Mon-YYYY)</label>
-            <div class="relative flex items-center">
+            <label for="s_date_display" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">DATE (DD-MON-YYYY)</label>
+            <div style="position: relative; display: flex; align-items: center;">
               <input id="s_date_display" type="text" readonly placeholder="DD-Mon-YYYY (click to pick)"
-                value="{{ (expense.date|format_date) if (is_edit and expense.get('date')) else '' }}"
-                class="h-10 w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/70 pl-3 pr-10 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60 hover:border-sky-400/40">
-              <input id="s_date" name="date" type="date"
-                value="{{ expense.date if (is_edit and expense.get('date')) else '' }}" class="sr-only">
-              <button type="button" id="s_openCalendarBtn"
-                class="absolute right-1 flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 hover:text-white transition border border-sky-400/40 shadow-sm"
-                title="Choose date from calendar">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
+                value="{{ (expense.date|format_date) if (is_edit and expense.get('date')) else '' }}" style="cursor: pointer; padding-right: 36px;">
+              <input id="s_date" name="date" type="date" value="{{ expense.date if (is_edit and expense.get('date')) else '' }}" style="display: none;">
+              <button type="button" id="s_openCalendarBtn" style="position: absolute; right: 4px; background: transparent; border: none; color: #0A8F20; cursor: pointer; padding: 6px;" title="Pick date">
+                📅
               </button>
             </div>
           </div>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label for="s_paid_by" class="mb-1.5 block text-xs font-medium text-slate-300">Who paid?</label>
-            <select id="s_paid_by" name="paid_by"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-sky-400/60">
+            <label for="s_paid_by" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">WHO PAID?</label>
+            <select id="s_paid_by" name="paid_by">
               {% for member in members %}
-              <option value="{{ member.id }}" data-name="{{ member.name }}" data-upi="{{ member.get('upi_id', '') }}" {%
-                if is_edit and expense.paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{%
-                endif %}>
+              <option value="{{ member.id }}" data-name="{{ member.name }}" data-upi="{{ member.get('upi_id', '') }}" {% if is_edit and expense.paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{% endif %}>
                 {{ member.name }}
               </option>
               {% endfor %}
@@ -129,129 +112,99 @@
           </div>
 
           <div>
-            <label for="s_payer_upi"
-              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Payer UPI ID</span>
-              <span class="text-[10px] text-emerald-400 font-normal">Optional</span>
+            <label for="s_payer_upi" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>PAYER UPI ID</span>
+              <span style="font-weight: 400; color: #0A8F20; text-transform: none;">Optional</span>
             </label>
             <input id="s_payer_upi" name="payer_upi" type="text" placeholder="e.g. name@oksbi"
-              value="{{ expense.payer_upi if is_edit else '' }}"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+              value="{{ expense.payer_upi if is_edit else '' }}">
           </div>
         </div>
 
         <!-- Treat Toggle -->
-        <div class="rounded-xl border border-purple-400/30 bg-purple-500/10 p-3 transition hover:bg-purple-500/15">
-          <label class="flex items-center gap-3 cursor-pointer select-none">
+        <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 10px 14px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
             <input type="checkbox" id="s_is_treat" name="is_treat" value="true"
-              class="h-4 w-4 rounded border-white/20 bg-slate-900 text-purple-500 focus:ring-purple-400" {{ 'checked' if
-              (is_edit and expense.get('is_treat')) else '' }}>
+              style="width: 16px; height: 16px; accent-color: #0A8F20; cursor: pointer;"
+              {{ 'checked' if (is_edit and expense.get('is_treat')) else '' }}>
             <div>
-              <span class="text-xs font-semibold text-purple-200 flex items-center gap-1.5">
-                <span>🎁</span>
-                <span>Mark as Treat (You treat everyone · Friends owe ₹0.00)</span>
-              </span>
-              <p class="text-[11px] text-purple-300/80 mt-0.5">Records total expense in party finances, but friends
-                don't owe any money.</p>
+              <span style="font-size: 12px; font-weight: 700; color: #fff;">🎁 MARK AS TREAT (YOU TREAT EVERYONE · FRIENDS OWE ₹0.00)</span>
+              <p style="font-size: 11px; color: #888; margin: 2px 0 0 0;">Records total in trip finances, but friends don't owe any money.</p>
             </div>
           </label>
         </div>
 
         <!-- Consumers -->
-        <fieldset class="pt-1">
-          <div class="mb-2 flex items-center justify-between">
-            <legend class="text-xs font-semibold uppercase tracking-wider text-slate-400">Split among</legend>
-            <button type="button" id="toggleAllSimple"
-              class="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition">Toggle all</button>
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600;">SPLIT AMONG</span>
+            <button type="button" id="toggleAllSimple" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">TOGGLE ALL</button>
           </div>
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">
             {% for member in members %}
             {% set is_checked = (not is_edit) or (expense and member.id in expense.consumers) %}
-            <label
-              class="consumer-chip group flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 transition hover:border-sky-400/30 hover:bg-white/[0.08] {{ 'border-sky-400/40 bg-sky-400/10' if is_checked else '' }}">
-              <span class="flex items-center gap-2 min-w-0">
-                <span class="text-base">{{ member.avatar }}</span>
-                <span class="text-xs font-medium text-white truncate">{{ member.name }}</span>
-              </span>
-              <input type="checkbox" name="consumers" value="{{ member.id }}"
-                class="consumer-box h-4 w-4 rounded border-white/20 bg-slate-900 text-sky-500 focus:ring-sky-400 ml-1.5"
-                {{ 'checked' if is_checked else '' }}>
+            <label class="consumer-chip" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid {{ '#0A8F20' if is_checked else '#2a2a2a' }}; background: {{ '#18241a' if is_checked else '#0a0a0a' }}; color: {{ '#ffffff' if is_checked else '#777777' }}; cursor: pointer; transition: all 0.15s ease;">
+              <span style="font-size: 12px; font-weight: 500;">{{ member.avatar }} {{ member.name }}</span>
+              <input type="checkbox" name="consumers" value="{{ member.id }}" class="consumer-box" style="accent-color: #0A8F20; width: 15px; height: 15px;" {{ 'checked' if is_checked else '' }}>
             </label>
             {% endfor %}
           </div>
-        </fieldset>
+        </div>
       </div>
     </div>
 
-    <!-- RIGHT COLUMN: Sticky Live Receipt (5 cols) -->
-    <div class="panel-scroll lg:col-span-5" style="overflow-y: auto; padding-right: 2px; display: flex; flex-direction: column; gap: 10px;">
-      <div id="simpleSummaryCard" class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <div class="flex items-center gap-2">
-            <span class="flex h-2 w-2 rounded-full bg-sky-400 animate-pulse"></span>
-            <h3 class="text-sm font-bold uppercase tracking-wider text-white">Live Split Receipt</h3>
+    <!-- RIGHT COLUMN: Sticky Live Receipt (Simple) -->
+    <div style="position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; gap: 14px;">
+      <div id="simpleSummaryCard" class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 8px; height: 8px; background: #0A8F20;"></span>
+            <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">LIVE SPLIT RECEIPT</span>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button type="button" id="s_viewQrBtn"
-              class="hidden rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
-              title="View UPI QR Code">
-              QR Code
-            </button>
-            <button type="button" id="s_copySummaryBtn"
-              class="group inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-200"
-              title="Copy breakdown">
-              <span id="s_copyText">Copy Breakdown</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" id="s_viewQrBtn" class="btn btn-dim btn-sm" style="display: none; padding: 2px 8px; font-size: 10px;">QR CODE</button>
+            <button type="button" id="s_copySummaryBtn" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
+              <span id="s_copyText">[COPY BREAKDOWN]</span>
             </button>
           </div>
         </div>
 
-        <div class="space-y-2 text-xs">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-slate-300 font-medium">Total Amount</span>
-            <span id="s_sumAmount" class="text-white font-bold text-base">₹0.00</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #888;">TOTAL AMOUNT:</span>
+            <span id="s_sumAmount" class="receipt-font" style="font-size: 17px; font-weight: 700; color: #fff;">₹0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f1f1f; padding-bottom: 6px;">
+            <span style="color: #888;">PAID BY:</span>
+            <span id="s_sumPayer" style="font-weight: 600; color: #fff;">-</span>
           </div>
 
-          <div class="flex justify-between text-slate-400">
-            <span>Paid by</span>
-            <span id="s_sumPayer" class="text-slate-200 font-medium">-</span>
-          </div>
-
-          <div class="rounded-xl border border-sky-400/20 bg-sky-500/[0.05] p-3 mt-3 space-y-1">
-            <div class="flex justify-between items-center">
-              <span class="text-xs font-semibold text-sky-300 uppercase tracking-wider">Per Person Share</span>
-              <span id="s_sumPerPerson" class="text-base font-extrabold text-sky-200">₹0.00</span>
+          <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px; margin-top: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">PER PERSON SHARE</span>
+              <span id="s_sumPerPerson" class="receipt-font" style="font-size: 16px; font-weight: 700; color: #0A8F20;">₹0.00</span>
             </div>
-            <p id="s_splitBreakdown" class="text-[11px] text-slate-400"></p>
+            <p id="s_splitBreakdown" style="font-size: 11px; color: #666; margin: 4px 0 0 0;"></p>
           </div>
 
-          <!-- Who Owes Whom List -->
-          <div class="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.04] p-3 space-y-2 mt-3">
-            <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Who Owes Whom</span>
-              <span id="s_owedBadge"
-                class="text-[10px] rounded px-1.5 py-0.5 bg-emerald-400/10 text-emerald-300 font-medium">0 debts</span>
+          <!-- Who owes whom -->
+          <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">PAYMENT DUES</span>
+              <span id="s_owedBadge" class="badge badge-dim" style="font-size: 9px;">0 DEBTS</span>
             </div>
-            <div id="s_owedList" class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5"></div>
+            <div id="s_owedList" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;" class="panel-scroll"></div>
           </div>
 
-          <!-- Live ASCII Receipt (Monospace Thermal Preview) -->
-          <div class="mt-3 pt-3 border-t border-white/10 space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <span>🧾</span> ASCII Thermal Receipt
-              </span>
-              <span class="text-[10px] text-slate-500 font-mono">42-col Receipt Font</span>
-            </div>
-            <pre id="s_asciiReceiptBox"
-              class="p-3.5 rounded-xl border border-white/10 bg-slate-950 text-slate-200 receipt-font text-[11px] leading-relaxed overflow-x-auto select-all shadow-inner"></pre>
+          <!-- ASCII receipt box -->
+          <div style="margin-top: 4px;">
+            <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; display: block; margin-bottom: 6px;">ASCII THERMAL RECEIPT</span>
+            <pre id="s_asciiReceiptBox" class="receipt-font panel-scroll" style="background: #0a0a0a; border: 1px dashed #2a2a2a; padding: 12px; font-size: 11px; line-height: 1.45; color: #d4d4d4; overflow-x: auto; white-space: pre; margin: 0; user-select: all;"></pre>
           </div>
         </div>
 
-        <!-- Primary Submit Button -->
-        <button type="submit"
-          class="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 p-3.5 text-sm font-bold text-white shadow-lg shadow-sky-500/20 transition hover:bg-sky-400 active:scale-[0.99]">
-          <span>{{ 'Save Changes' if is_edit else 'Add Expense' }}</span>
-          <span class="transition group-hover:translate-x-1">→</span>
+        <button type="submit" class="btn btn-solid" style="height: 42px; justify-content: center; font-size: 13px; font-weight: 700; width: 100%; margin-top: 8px;">
+          [{{ 'SAVE CHANGES' if is_edit else 'SAVE EXPENSE' }} →]
         </button>
       </div>
     </div>
@@ -259,36 +212,34 @@
 </form>
 
 {% else %}
-<!-- ========== RESTAURANT / DINEOUT MODE ========== -->
-<form method="post" id="restaurantForm" class="fade-in"
+<!-- ========== RESTAURANT BILL MODE ========== -->
+<form method="post" id="restaurantForm"
   action="{{ url_for('edit_expense', trip_id=trip.id, expense_id=expense.id) if is_edit else url_for('add_expense', trip_id=trip.id, mode='restaurant') }}">
   <input type="hidden" name="mode" value="restaurant">
   <input type="hidden" name="items_data" id="itemsData" value="[]">
 
-  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 10px; overflow: hidden;" class="lg:grid-cols-12">
-
-    <!-- LEFT COLUMN: Input Panels (7 cols) -->
-    <div class="panel-scroll lg:col-span-7" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;" class="lg:grid-cols-[1.25fr_1fr]">
+    <!-- LEFT COLUMN: Input Panels -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
 
       <!-- Panel 1: Bill & Table Members -->
-      <div class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🍽️</span>
-            <h2 class="text-base font-semibold text-white">{{ 'Edit Restaurant Bill' if is_edit else 'Bill & Diners' }}
-            </h2>
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 15px;">🍽️</span>
+            <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
+              {{ 'EDIT RESTAURANT BILL' if is_edit else 'BILL & DINERS' }}
+            </span>
           </div>
-          <span class="text-xs text-slate-400">{{ trip.name }}</span>
+          <span style="font-size: 11px; color: #888; text-transform: uppercase;">{{ trip.name }}</span>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label for="r_event_id" class="mb-1.5 block text-xs font-medium text-slate-300">Event</label>
-            <select id="r_event_id" name="event_id"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-amber-400/60">
+            <label for="r_event_id" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">EVENT</label>
+            <select id="r_event_id" name="event_id">
               {% for event in events %}
-              <option value="{{ event.id }}" {% if (is_edit and target_event and target_event.id==event.id) or (not
-                is_edit and request.args.get('event_id')==event.id) %}selected{% elif loop.first %}selected{% endif %}>
+              <option value="{{ event.id }}" {% if (is_edit and target_event and target_event.id==event.id) or (not is_edit and request.args.get('event_id')==event.id) %}selected{% elif loop.first %}selected{% endif %}>
                 {{ event_types.get(event.type, event_types.other).icon }} {{ event.name }}
               </option>
               {% endfor %}
@@ -296,61 +247,45 @@
           </div>
 
           <div>
-            <label for="r_description" class="mb-1.5 block text-xs font-medium text-slate-300">Description /
-              Restaurant</label>
+            <label for="r_description" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">RESTAURANT / DESCRIPTION</label>
             <input id="r_description" name="description" type="text" required maxlength="80"
-              placeholder="e.g. Paradise Biryani, Mainland China..."
-              value="{{ expense.description if is_edit else '' }}"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+              placeholder="e.g. Paradise Biryani, Chapter 2 - Lunch..."
+              value="{{ expense.description if is_edit else '' }}">
           </div>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label for="r_total_bill"
-              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Total Bill Amount</span>
-              <span class="text-[11px] text-sky-400 font-normal">incl. taxes</span>
+            <label for="r_total_bill" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>TOTAL BILL AMOUNT</span>
+              <span style="font-weight: 400; color: #0A8F20; text-transform: none;">incl. taxes</span>
             </label>
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
               <input id="r_total_bill" name="total_bill" type="number" min="0.01" step="0.01" required
-                placeholder="e.g. 2909" value="{{ expense.total_bill if is_edit else '' }}"
-                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+                placeholder="e.g. 3890.00" value="{{ expense.total_bill if is_edit else '' }}" style="padding-left: 26px; font-weight: 700;">
             </div>
           </div>
 
           <div>
-            <label for="r_date_display" class="mb-1.5 block text-xs font-medium text-slate-300">Date
-              (DD-Mon-YYYY)</label>
-            <div class="relative flex items-center">
+            <label for="r_date_display" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">DATE (DD-MON-YYYY)</label>
+            <div style="position: relative; display: flex; align-items: center;">
               <input id="r_date_display" type="text" readonly placeholder="DD-Mon-YYYY (click to pick)"
-                value="{{ (expense.date|format_date) if (is_edit and expense.get('date')) else '' }}"
-                class="h-10 w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/70 pl-3 pr-10 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60 hover:border-amber-400/40">
-              <input id="r_date" name="date" type="date"
-                value="{{ expense.date if (is_edit and expense.get('date')) else '' }}" class="sr-only">
-              <button type="button" id="r_openCalendarBtn"
-                class="absolute right-1 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 hover:text-white transition border border-amber-400/40 shadow-sm"
-                title="Choose date from calendar">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
+                value="{{ (expense.date|format_date) if (is_edit and expense.get('date')) else '' }}" style="cursor: pointer; padding-right: 36px;">
+              <input id="r_date" name="date" type="date" value="{{ expense.date if (is_edit and expense.get('date')) else '' }}" style="display: none;">
+              <button type="button" id="r_openCalendarBtn" style="position: absolute; right: 4px; background: transparent; border: none; color: #0A8F20; cursor: pointer; padding: 6px;" title="Pick date">
+                📅
               </button>
             </div>
           </div>
         </div>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
-            <label for="r_paid_by" class="mb-1.5 block text-xs font-medium text-slate-300">Who paid the bill?</label>
-            <select id="r_paid_by" name="paid_by"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition focus:border-amber-400/60">
+            <label for="r_paid_by" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: block;">WHO PAID AT TABLE?</label>
+            <select id="r_paid_by" name="paid_by">
               {% for member in members %}
-              <option value="{{ member.id }}" data-name="{{ member.name }}" data-upi="{{ member.get('upi_id', '') }}" {%
-                if is_edit and expense.paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{%
-                endif %}>
+              <option value="{{ member.id }}" data-name="{{ member.name }}" data-upi="{{ member.get('upi_id', '') }}" {% if is_edit and expense.paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{% endif %}>
                 {{ member.name }}
               </option>
               {% endfor %}
@@ -358,416 +293,340 @@
           </div>
 
           <div>
-            <label for="r_payer_upi"
-              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Payer UPI ID</span>
-              <span class="text-[10px] text-emerald-400 font-normal">Optional</span>
+            <label for="r_payer_upi" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>PAYER UPI ID</span>
+              <span style="font-weight: 400; color: #0A8F20; text-transform: none;">Optional</span>
             </label>
             <input id="r_payer_upi" name="payer_upi" type="text" placeholder="e.g. name@oksbi"
-              value="{{ expense.payer_upi if is_edit else '' }}"
-              class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+              value="{{ expense.payer_upi if is_edit else '' }}">
           </div>
         </div>
 
         <!-- Treat Toggle -->
-        <div class="rounded-xl border border-purple-400/30 bg-purple-500/10 p-3 transition hover:bg-purple-500/15">
-          <label class="flex items-center gap-3 cursor-pointer select-none">
+        <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 10px 14px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
             <input type="checkbox" id="r_is_treat" name="is_treat" value="true"
-              class="h-4 w-4 rounded border-white/20 bg-slate-900 text-purple-500 focus:ring-purple-400" {{ 'checked' if
-              (is_edit and expense.get('is_treat')) else '' }}>
+              style="width: 16px; height: 16px; accent-color: #0A8F20; cursor: pointer;"
+              {{ 'checked' if (is_edit and expense.get('is_treat')) else '' }}>
             <div>
-              <span class="text-xs font-semibold text-purple-200 flex items-center gap-1.5">
-                <span>🎁</span>
-                <span>Mark as Treat (You treat everyone · Friends owe ₹0.00)</span>
-              </span>
-              <p class="text-[11px] text-purple-300/80 mt-0.5">Records the entire restaurant bill in trip finances, but
-                diners' table share is ₹0.00.</p>
+              <span style="font-size: 12px; font-weight: 700; color: #fff;">🎁 MARK AS TREAT (YOU TREAT EVERYONE · FRIENDS OWE ₹0.00)</span>
+              <p style="font-size: 11px; color: #888; margin: 2px 0 0 0;">Records the entire restaurant bill in trip finances, but diners' table share is ₹0.00.</p>
             </div>
           </label>
         </div>
 
         <!-- Table Diners -->
-        <fieldset class="pt-1">
-          <div class="mb-2 flex items-center justify-between">
-            <legend class="text-xs font-semibold uppercase tracking-wider text-slate-400">Who was at the table?</legend>
-            <button type="button" id="toggleAllRestaurant"
-              class="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition">Toggle all</button>
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600;">WHO WAS AT THE TABLE?</span>
+            <button type="button" id="toggleAllRestaurant" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">TOGGLE ALL</button>
           </div>
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">
             {% for member in members %}
             {% set is_checked = (not is_edit) or (expense and member.id in expense.consumers) %}
-            <label
-              class="consumer-chip group flex cursor-pointer items-center justify-between rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 transition hover:border-amber-400/30 hover:bg-white/[0.08] {{ 'border-amber-400/40 bg-amber-400/10' if is_checked else '' }}">
-              <span class="flex items-center gap-2 min-w-0">
-                <span class="text-base">{{ member.avatar }}</span>
-                <span class="text-xs font-medium text-white truncate">{{ member.name }}</span>
-              </span>
-              <input type="checkbox" name="consumers" value="{{ member.id }}"
-                class="consumer-box h-4 w-4 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-400 ml-1.5"
-                {{ 'checked' if is_checked else '' }}>
+            <label class="consumer-chip" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid {{ '#0A8F20' if is_checked else '#2a2a2a' }}; background: {{ '#18241a' if is_checked else '#0a0a0a' }}; color: {{ '#ffffff' if is_checked else '#777777' }}; cursor: pointer; transition: all 0.15s ease;">
+              <span style="font-size: 12px; font-weight: 500;">{{ member.avatar }} {{ member.name }}</span>
+              <input type="checkbox" name="consumers" value="{{ member.id }}" class="consumer-box" style="accent-color: #0A8F20; width: 15px; height: 15px;" {{ 'checked' if is_checked else '' }}>
             </label>
             {% endfor %}
           </div>
-        </fieldset>
+        </div>
       </div>
 
       <!-- Panel 2: Taxes, Service Charge & Discounts -->
-      <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl space-y-4">
-        <div class="flex items-center gap-2 border-b border-white/5 pb-2.5">
-          <span class="text-base">🏷️</span>
-          <div>
-            <h3 class="text-sm font-semibold text-white">Paper Bill Breakdown & App Discounts</h3>
-            <p class="text-[10px] text-slate-400">Match the exact Service Charge & GST printed on your paper bill</p>
+      <div class="card" style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 15px;">🏷️</span>
+            <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">PAPER BILL CHARGES & APP DISCOUNTS</span>
           </div>
+          <span style="font-size: 10px; color: #888;">MATCH EXACT PAPER RECEIPT</span>
         </div>
 
-        <!-- Section A: Paper Bill Charges (Service Charge & Taxes) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <!-- Service Charge from Paper Bill -->
           <div>
-            <label for="r_service_charge"
-              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Service Charge</span>
-              <span class="text-[10px] text-slate-400">from bill (optional)</span>
+            <label for="r_service_charge" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>SERVICE CHARGE</span>
+              <span style="font-weight: 400; color: #666; text-transform: none;">optional</span>
             </label>
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
               <input id="r_service_charge" name="service_charge" type="number" min="0" step="0.01"
-                value="{{ expense.service_charge if is_edit else '0' }}" placeholder="e.g. 181.79"
-                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400/60">
+                value="{{ expense.service_charge if is_edit else '0' }}" placeholder="e.g. 180" style="padding-left: 26px;">
             </div>
           </div>
 
           <!-- Taxes & GST (Enter % or Exact Amount) -->
           <div>
-            <label for="r_tax_amt" class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Taxes & GST</span>
-              <span id="taxPreview" class="text-[11px] text-teal-400 font-medium"></span>
+            <label for="r_tax_amt" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>TAXES & GST</span>
+              <span id="taxPreview" style="font-weight: 400; color: #0A8F20;"></span>
             </label>
-            <div class="grid grid-cols-2 gap-2">
-              <div class="relative">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div style="position: relative;">
                 <input id="r_tax_pct" name="tax_percent" type="number" min="0" max="100" step="0.01"
-                  value="{{ expense.tax_percent if is_edit else '5' }}" placeholder="5"
-                  class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-2.5 pr-6 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400/60">
-                <span
-                  class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-slate-400">%</span>
+                  value="{{ expense.tax_percent if is_edit else '5' }}" placeholder="5" style="padding-right: 24px;">
+                <span style="position: absolute; right: 8px; top: 9px; color: #666; font-size: 12px;">%</span>
               </div>
-              <div class="relative">
-                <span
-                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
                 <input id="r_tax_amt" name="tax_amount" type="number" min="0" step="0.01"
-                  value="{{ expense.tax_amount if is_edit else '0' }}" placeholder="e.g. 129.86"
-                  class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-teal-400/60">
+                  value="{{ expense.tax_amount if is_edit else '0' }}" placeholder="e.g. 185.24" style="padding-left: 26px;">
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Section B: App Discounts & Convenience Fee (Dineout / Zomato) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/5">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border-top: 1px solid #1f1f1f; padding-top: 12px;">
           <!-- Offer Discount -->
           <div>
-            <label for="r_discount" class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Offer Discount (Dineout / Zomato)</span>
-              <span id="discountPreview" class="text-[11px] text-emerald-400 font-medium"></span>
+            <label for="r_discount" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>OFFER DISCOUNT</span>
+              <span id="discountPreview" style="font-weight: 400; color: #0A8F20;"></span>
             </label>
-            <div class="relative">
+            <div style="position: relative;">
               <input id="r_discount" name="discount_percent" type="number" min="0" max="100" step="0.1"
-                value="{{ expense.discount_percent if is_edit else '0' }}" placeholder="e.g. 10"
-                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 pr-8 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/60">
-              <span
-                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">%</span>
+                value="{{ expense.discount_percent if is_edit else '0' }}" placeholder="e.g. 10" style="padding-right: 24px;">
+              <span style="position: absolute; right: 8px; top: 9px; color: #666; font-size: 12px;">%</span>
             </div>
           </div>
 
           <!-- Convenience Fee -->
           <div>
-            <label for="r_convenience_fee"
-              class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-300">
-              <span>Convenience Fee (App Fee)</span>
-              <span class="text-[10px] text-slate-400">Dineout / app fee</span>
+            <label for="r_convenience_fee" style="font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #888888; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>CONVENIENCE FEE</span>
+              <span style="font-weight: 400; color: #666; text-transform: none;">app fee</span>
             </label>
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">₹</span>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
               <input id="r_convenience_fee" name="convenience_fee" type="number" min="0" step="0.01"
-                value="{{ expense.convenience_fee if is_edit else '0' }}" placeholder="e.g. 109"
-                class="h-10 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-7 pr-3 text-xs text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400/60">
+                value="{{ expense.convenience_fee if is_edit else '0' }}" placeholder="e.g. 79" style="padding-left: 26px;">
             </div>
           </div>
         </div>
 
-        <!-- Tax & Charges Split Method -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5">
-          <span class="text-xs text-slate-400">Tax & Charges splitting:</span>
-          <div class="flex rounded-xl border border-white/10 bg-white/5 p-1 gap-1">
-            <label
-              class="tax-split-chip flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition {{ 'border border-teal-400/40 bg-teal-400/10 text-teal-200' if (not is_edit or expense.tax_split_method == 'equal') else 'border border-transparent text-slate-400 hover:text-white' }}">
-              <input type="radio" name="tax_split_method" value="equal" class="hidden" {{ 'checked' if (not is_edit or
-                expense.tax_split_method=='equal' ) else '' }}>
-              <span>Split Taxes Equally</span>
+        <!-- Tax Split Method -->
+        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #1f1f1f; padding-top: 12px; flex-wrap: wrap; gap: 8px;">
+          <span style="font-size: 11.5px; color: #888; text-transform: uppercase; font-weight: 600;">TAX & CHARGES SPLITTING:</span>
+          <div style="display: flex; gap: 8px;">
+            <label class="tax-split-chip" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 5px 12px; border: 1px solid {{ '#0A8F20' if (not is_edit or expense.tax_split_method == 'equal') else '#2a2a2a' }}; background: {{ '#18241a' if (not is_edit or expense.tax_split_method == 'equal') else '#0a0a0a' }}; color: {{ '#fff' if (not is_edit or expense.tax_split_method == 'equal') else '#888' }}; cursor: pointer;">
+              <input type="radio" name="tax_split_method" value="equal" style="display: none;" {{ 'checked' if (not is_edit or expense.tax_split_method=='equal') else '' }}>
+              <span>SPLIT TAXES EQUALLY</span>
             </label>
-            <label
-              class="tax-split-chip flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition {{ 'border border-teal-400/40 bg-teal-400/10 text-teal-200' if (is_edit and expense.tax_split_method == 'proportional') else 'border border-transparent text-slate-400 hover:text-white' }}">
-              <input type="radio" name="tax_split_method" value="proportional" class="hidden" {{ 'checked' if (is_edit
-                and expense.tax_split_method=='proportional' ) else '' }}>
-              <span>Proportional to Items</span>
+            <label class="tax-split-chip" style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 5px 12px; border: 1px solid {{ '#0A8F20' if (is_edit and expense.tax_split_method == 'proportional') else '#2a2a2a' }}; background: {{ '#18241a' if (is_edit and expense.tax_split_method == 'proportional') else '#0a0a0a' }}; color: {{ '#fff' if (is_edit and expense.tax_split_method == 'proportional') else '#888' }}; cursor: pointer;">
+              <input type="radio" name="tax_split_method" value="proportional" style="display: none;" {{ 'checked' if (is_edit and expense.tax_split_method=='proportional') else '' }}>
+              <span>PROPORTIONAL TO ITEMS</span>
             </label>
           </div>
         </div>
       </div>
 
-      <!-- Panel 3: Cover Charge Settlement & Coins (Progressive Disclosure Collapsible) -->
-      <details id="extrasDetails"
-        class="group rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-xl transition open:border-violet-400/30"
-        {{ 'open' if (is_edit and (expense.cover_charge_total or expense.dineout_coins)) else '' }}>
-        <summary
-          class="flex cursor-pointer items-center justify-between p-4 text-xs font-semibold text-slate-300 hover:text-white select-none">
-          <span class="flex items-center gap-2">
+      <!-- Panel 3: Cover Charge Settlement & Coins -->
+      <details id="extrasDetails" class="card" style="padding: 0;" {{ 'open' if (is_edit and (expense.cover_charge_total or expense.dineout_coins)) else '' }}>
+        <summary style="padding: 14px 18px; cursor: pointer; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+          <span style="display: flex; align-items: center; gap: 8px;">
             <span>🎫</span>
-            <span>Cover Charge Settlement & DineCoins (Optional)</span>
+            <span>COVER CHARGE SETTLEMENT & DINECOINS (OPTIONAL)</span>
           </span>
-          <span class="text-slate-500 transition-transform group-open:rotate-180">▼</span>
+          <span>▼</span>
         </summary>
-        <div class="p-4 pt-0 space-y-3.5 border-t border-white/5">
-          <!-- Cover Charge Inputs -->
-          <div class="grid gap-3 sm:grid-cols-3 pt-3">
+        <div style="padding: 16px 18px; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
             <div>
-              <label for="r_cover_total" class="mb-1 block text-xs text-slate-300">Cover charge settlement</label>
-              <div class="relative">
-                <span
-                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+              <label for="r_cover_total" style="font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 4px; display: block;">COVER CHARGE TOTAL</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
                 <input id="r_cover_total" name="cover_charge_total" type="number" min="0" step="1"
-                  value="{{ expense.cover_charge_total if is_edit else '0' }}" placeholder="0"
-                  class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none focus:border-violet-400/60">
+                  value="{{ expense.cover_charge_total if is_edit else '0' }}" placeholder="0" style="padding-left: 26px;">
               </div>
             </div>
             <div>
-              <label for="r_cover_pp" class="mb-1 block text-xs text-slate-300">OR per-person</label>
-              <div class="relative">
-                <span
-                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+              <label for="r_cover_pp" style="font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 4px; display: block;">OR PER-PERSON</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
                 <input id="r_cover_pp" name="cover_charge_per_person" type="number" min="0" step="1"
-                  value="{{ expense.cover_charge_per_person if is_edit else '0' }}" placeholder="0"
-                  class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none focus:border-violet-400/60">
+                  value="{{ expense.cover_charge_per_person if is_edit else '0' }}" placeholder="0" style="padding-left: 26px;">
               </div>
             </div>
             <div>
-              <label for="r_cover_paid_by" class="mb-1 block text-xs text-slate-300">Booked by</label>
-              <select id="r_cover_paid_by" name="cover_charge_paid_by"
-                class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 px-2 text-xs text-white outline-none focus:border-violet-400/60">
+              <label for="r_cover_paid_by" style="font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 4px; display: block;">BOOKED BY</label>
+              <select id="r_cover_paid_by" name="cover_charge_paid_by">
                 {% for member in members %}
-                <option value="{{ member.id }}" {% if is_edit and expense.cover_charge_paid_by==member.id %}selected{%
-                  elif not is_edit and loop.first %}selected{% endif %}>
-                  {{ member.avatar }} {{ member.name }}
+                <option value="{{ member.id }}" {% if is_edit and expense.cover_charge_paid_by==member.id %}selected{% elif not is_edit and loop.first %}selected{% endif %}>
+                  {{ member.name }}
                 </option>
                 {% endfor %}
               </select>
             </div>
           </div>
 
-          <!-- Coins Inputs -->
-          <div class="grid gap-3 sm:grid-cols-3 pt-2 border-t border-white/5">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; border-top: 1px solid #1f1f1f; padding-top: 12px;">
             <div>
-              <label for="r_coins" class="mb-1 block text-xs text-slate-300">Coins used</label>
-              <div class="relative">
-                <span
-                  class="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-slate-400">₹</span>
+              <label for="r_coins" style="font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 4px; display: block;">COINS USED</label>
+              <div style="position: relative;">
+                <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
                 <input id="r_coins" name="dineout_coins" type="number" min="0" step="1"
-                  value="{{ expense.dineout_coins if is_edit else '0' }}" placeholder="0"
-                  class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 pl-6 pr-2 text-xs text-white outline-none focus:border-amber-400/60">
+                  value="{{ expense.dineout_coins if is_edit else '0' }}" placeholder="0" style="padding-left: 26px;">
               </div>
             </div>
             <div>
-              <label for="r_coins_by" class="mb-1 block text-xs text-slate-300">Whose coins?</label>
-              <select id="r_coins_by" name="dineout_coins_by"
-                class="h-9 w-full rounded-xl border border-white/10 bg-slate-950/70 px-2 text-xs text-white outline-none focus:border-amber-400/60">
+              <label for="r_coins_by" style="font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 4px; display: block;">WHOSE COINS?</label>
+              <select id="r_coins_by" name="dineout_coins_by">
                 {% for member in members %}
-                <option value="{{ member.id }}" {% if is_edit and expense.dineout_coins_by==member.id %}selected{% elif
-                  not is_edit and loop.first %}selected{% endif %}>
-                  {{ member.avatar }} {{ member.name }}
+                <option value="{{ member.id }}" {% if is_edit and expense.dineout_coins_by==member.id %}selected{% elif not is_edit and loop.first %}selected{% endif %}>
+                  {{ member.name }}
                 </option>
                 {% endfor %}
               </select>
             </div>
-            <div class="flex items-end pb-0.5">
-              <label
-                class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-slate-300 hover:border-amber-400/30">
+            <div style="display: flex; align-items: flex-end;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 10px; background: #0a0a0a; border: 1px solid #2a2a2a; width: 100%;">
                 <input type="checkbox" name="include_coins_in_split" id="r_include_coins"
-                  class="h-4 w-4 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-400" {{ 'checked'
-                  if (is_edit and expense.include_coins_in_split) else '' }}>
-                <span>Gift coins to group</span>
+                  style="width: 15px; height: 15px; accent-color: #0A8F20;" {{ 'checked' if (is_edit and expense.include_coins_in_split) else '' }}>
+                <span style="font-size: 11.5px; color: #d4d4d4;">GIFT COINS TO GROUP</span>
               </label>
             </div>
           </div>
         </div>
       </details>
 
-      <!-- Panel 4: Itemized Split (Collapsible) -->
-      <details id="itemizedDetails"
-        class="group rounded-2xl border border-sky-400/20 bg-slate-900/80 backdrop-blur-xl transition open:border-sky-400/40"
-        {{ 'open' if (is_edit and expense and expense.get('items') and expense.get('items')|length> 0) else '' }}>
-        <summary
-          class="flex cursor-pointer items-center justify-between p-4 text-xs font-semibold text-sky-200 hover:text-white select-none">
-          <span class="flex items-center gap-2">
+      <!-- Panel 4: Itemized Split -->
+      <details id="itemizedDetails" class="card" style="padding: 0;" {{ 'open' if (is_edit and expense and expense.get('items') and expense.get('items')|length > 0) else '' }}>
+        <summary style="padding: 14px 18px; cursor: pointer; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+          <span style="display: flex; align-items: center; gap: 8px;">
             <span>📝</span>
-            <span>Itemized Split (Optional)</span>
+            <span>ITEMIZED DISHES (OPTIONAL)</span>
           </span>
-          <div class="flex items-center gap-2">
-            <span id="itemsSummary" class="text-[11px] text-slate-400">Items: <strong id="itemsTotalDisplay"
-                class="text-white">₹0.00</strong></span>
-            <span class="text-slate-500 transition-transform group-open:rotate-180">▼</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="itemsSummary" style="font-size: 11px; color: #888;">ITEMS: <strong id="itemsTotalDisplay" style="color: #0A8F20;">₹0.00</strong></span>
+            <span>▼</span>
           </div>
         </summary>
-        <div id="itemSection" class="p-4 pt-0 space-y-3 border-t border-white/5">
-          <p class="text-xs text-slate-400 pt-3">Add dishes and check who shared each dish for fair proportional
-            splitting.</p>
-          <div id="itemsList" class="space-y-2.5"></div>
-          <div class="flex items-center justify-between pt-1">
-            <button type="button" id="addItemBtn"
-              class="inline-flex items-center gap-1.5 rounded-xl bg-sky-500/15 border border-sky-400/40 px-3 py-1.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/25">
-              <span>+ Add Item</span>
+        <div id="itemSection" style="padding: 16px 18px; border-top: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 12px;">
+          <p style="font-size: 11.5px; color: #888; margin: 0;">Add dishes and select who shared each dish for fair proportional splitting.</p>
+          <div id="itemsList" style="display: flex; flex-direction: column; gap: 12px;"></div>
+          <div>
+            <button type="button" id="addItemBtn" class="btn btn-sm">
+              + ADD DISH
             </button>
           </div>
         </div>
       </details>
+
     </div>
 
-    <!-- RIGHT COLUMN: Sticky Live Receipt & Actions (5 cols) -->
-    <div class="panel-scroll lg:col-span-5" style="overflow-y: auto; padding-right: 2px; display: flex; flex-direction: column; gap: 10px;">
-      <div id="billSummary" class="card" style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+    <!-- RIGHT COLUMN: Sticky Live Receipt (Restaurant) -->
+    <div style="position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; gap: 14px; max-height: calc(100vh - 32px); overflow-y: auto;" class="panel-scroll">
+      <div id="billSummary" class="card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
 
-        <!-- Header with Live Indicator & Action Buttons -->
-        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <div class="flex items-center gap-2">
-            <span class="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <h3 class="text-sm font-bold uppercase tracking-wider text-white">Live Split Receipt</h3>
+        <!-- Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 8px; height: 8px; background: #0A8F20;"></span>
+            <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">LIVE SPLIT RECEIPT</span>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button type="button" id="viewQrBtn"
-              class="hidden rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-400/20"
-              title="View UPI QR Code">
-              QR Code
-            </button>
-            <button type="button" id="copySummaryBtn"
-              class="group inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-200"
-              title="Copy detailed calculation breakdown">
-              <span id="copyText">Copy Breakdown</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" id="viewQrBtn" class="btn btn-dim btn-sm" style="display: none; padding: 2px 8px; font-size: 10px;">QR CODE</button>
+            <button type="button" id="copySummaryBtn" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
+              <span id="copyText">[COPY BREAKDOWN]</span>
             </button>
           </div>
         </div>
 
         <!-- Receipt Rows -->
-        <div class="space-y-2 text-xs" id="summaryContent">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-slate-300 font-medium">Total Bill <span class="text-[11px] text-sky-400 font-normal">(tax
-                incl.)</span></span>
-            <span id="sumBill" class="text-white font-bold text-base">₹0.00</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;" id="summaryContent">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #888;">TOTAL BILL <span style="font-size: 11px; color: #666;">(tax incl.)</span></span>
+            <span id="sumBill" class="receipt-font" style="font-size: 17px; font-weight: 700; color: #fff;">₹0.00</span>
           </div>
 
-          <!-- Bill Breakdown Box -->
-          <div id="taxBreakdownBox"
-            class="rounded-xl border border-teal-400/20 bg-teal-500/[0.04] p-2.5 space-y-1 text-[11px] transition">
-            <div class="flex justify-between text-slate-400">
+          <!-- Breakdown Box -->
+          <div id="taxBreakdownBox" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+            <div style="display: flex; justify-content: space-between; color: #888;">
               <span>↳ Food Subtotal (pre-tax)</span>
-              <span id="sumFoodSubtotal" class="text-slate-300 font-medium">₹0.00</span>
+              <span id="sumFoodSubtotal" style="color: #ccc; font-weight: 500;">₹0.00</span>
             </div>
-            <div id="sumServiceChargeRow" class="hidden flex justify-between text-slate-400">
+            <div id="sumServiceChargeRow" style="display: none; justify-content: space-between; color: #888;">
               <span>↳ Service Charge</span>
-              <span id="sumServiceCharge" class="text-violet-300 font-medium">₹0.00</span>
+              <span id="sumServiceCharge" style="color: #ccc; font-weight: 500;">₹0.00</span>
             </div>
-            <div id="sumTaxIncludedRow" class="flex justify-between text-slate-400">
+            <div id="sumTaxIncludedRow" style="display: flex; justify-content: space-between; color: #888;">
               <span>↳ Taxes & GST included</span>
-              <span id="sumTaxIncluded" class="text-teal-300 font-medium">₹0.00</span>
+              <span id="sumTaxIncluded" style="color: #ccc; font-weight: 500;">₹0.00</span>
             </div>
           </div>
 
-          <div id="sumDiscountRow" class="flex justify-between text-slate-400">
+          <div id="sumDiscountRow" style="display: flex; justify-content: space-between; color: #888; font-size: 12.5px;">
             <span>Offer discount</span>
-            <span id="sumDiscount" class="text-emerald-300 font-medium">-₹0.00</span>
+            <span id="sumDiscount" style="color: #0A8F20; font-weight: 600;">-₹0.00</span>
           </div>
 
-          <div id="sumFeeRow" class="hidden flex justify-between text-slate-400">
+          <div id="sumFeeRow" style="display: none; justify-content: space-between; color: #888; font-size: 12.5px;">
             <span>Convenience fee</span>
-            <span id="sumFee" class="text-amber-200/90 font-medium">+₹0.00</span>
+            <span id="sumFee" style="color: #d97706; font-weight: 600;">+₹0.00</span>
           </div>
 
-          <div class="flex justify-between text-slate-200 font-semibold border-t border-white/5 pt-2">
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid #1f1f1f; padding-top: 6px; font-weight: 600; color: #fff; font-size: 13px;">
             <span>Net Bill to Split</span>
-            <span id="sumNetBill" class="text-white">₹0.00</span>
+            <span id="sumNetBill" class="receipt-font">₹0.00</span>
           </div>
 
-          <div id="sumCoverRow" class="flex justify-between text-slate-400">
-            <span>Cover charge settlement</span>
-            <span id="sumCover" class="text-violet-300">-₹0.00</span>
+          <div id="sumCoverRow" style="display: none; justify-content: space-between; color: #888; font-size: 12.5px;">
+            <span>Cover charge booking</span>
+            <span id="sumCover" style="color: #888;">-₹0.00</span>
           </div>
 
-          <div id="sumCoinsRow" class="flex justify-between text-slate-400">
+          <div id="sumCoinsRow" style="display: none; justify-content: space-between; color: #888; font-size: 12.5px;">
             <span>DineCoins used</span>
-            <span id="sumCoins" class="text-amber-300">-₹0.00</span>
+            <span id="sumCoins" style="color: #d97706;">-₹0.00</span>
           </div>
 
-          <div
-            class="flex justify-between items-center border-t border-white/10 pt-2 text-xs font-semibold text-slate-200">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2a2a2a; padding-top: 6px; font-weight: 700; color: #0A8F20;">
             <span>Paid at restaurant table</span>
-            <span id="sumFinal" class="text-white text-sm font-bold">₹0.00</span>
+            <span id="sumFinal" class="receipt-font" style="font-size: 15px;">₹0.00</span>
           </div>
 
-          <!-- Split Preview Box -->
-          <div class="rounded-xl border border-sky-400/20 bg-sky-500/[0.05] p-3 mt-3">
+          <!-- Split Shares Box -->
+          <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px; margin-top: 4px;">
             <!-- Equal Split View -->
-            <div id="equalSplitContainer" class="space-y-0.5">
-              <div class="flex justify-between items-center">
-                <span class="text-xs font-semibold text-sky-300 uppercase tracking-wider">Per Person Share</span>
-                <span id="sumPerPerson" class="text-base font-extrabold text-sky-200">₹0.00</span>
+            <div id="equalSplitContainer" style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">PER PERSON SHARE</span>
+                <span id="sumPerPerson" class="receipt-font" style="font-size: 16px; font-weight: 700; color: #0A8F20;">₹0.00</span>
               </div>
-              <p id="equalSplitBreakdown" class="text-[11px] text-slate-400"></p>
+              <p id="equalSplitBreakdown" style="font-size: 11px; color: #666; margin: 0;"></p>
             </div>
 
             <!-- Itemized Split View -->
-            <div id="itemizedSplitContainer" class="hidden space-y-2 pt-1">
-              <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
-                <span class="text-[11px] uppercase tracking-wider font-semibold text-amber-300">Itemized
-                  Breakdown</span>
-                <span class="text-[10px] text-slate-400" id="itemizedRatioNote"></span>
+            <div id="itemizedSplitContainer" style="display: none; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1f1f1f; padding-bottom: 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">INDIVIDUAL SHARES</span>
+                <span id="itemizedRatioNote" style="font-size: 10px; color: #666;"></span>
               </div>
-              <div id="itemizedSharesList" class="space-y-1.5 max-h-48 overflow-y-auto pr-1"></div>
+              <div id="itemizedSharesList" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;" class="panel-scroll"></div>
             </div>
           </div>
 
           <!-- Table Cash Settlement -->
-          <div id="tableSettlementBox"
-            class="rounded-xl border border-emerald-400/20 bg-emerald-500/[0.04] p-3 space-y-2 mt-3">
-            <div class="flex items-center justify-between border-b border-white/10 pb-1.5">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">Who Pays What at
-                Table</span>
-              <span id="tableSettlementBadge"
-                class="text-[10px] rounded px-1.5 py-0.5 bg-emerald-400/10 text-emerald-300 font-medium">Table bill:
-                ₹0.00</span>
+          <div id="tableSettlementBox" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px;">
+              <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">WHO PAYS WHAT AT TABLE</span>
+              <span id="tableSettlementBadge" class="badge badge-dim" style="font-size: 9px;">TABLE BILL: ₹0.00</span>
             </div>
-            <div id="tableSettlementList" class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5"></div>
-            <p id="tableSettlementNote" class="text-[10px] text-slate-400 pt-1 border-t border-white/5"></p>
+            <div id="tableSettlementList" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;" class="panel-scroll"></div>
+            <p id="tableSettlementNote" style="font-size: 10.5px; color: #666; margin: 0;"></p>
           </div>
 
-          <!-- Live ASCII Receipt (Monospace Thermal Preview) -->
-          <div class="mt-3 pt-3 border-t border-white/10 space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <span>🧾</span> ASCII Thermal Receipt
-              </span>
-              <span class="text-[10px] text-slate-500 font-mono">42-col Receipt Font</span>
-            </div>
-            <pre id="r_asciiReceiptBox"
-              class="p-3.5 rounded-xl border border-white/10 bg-slate-950 text-slate-200 receipt-font text-[11px] leading-relaxed overflow-x-auto select-all shadow-inner"></pre>
+          <!-- ASCII Receipt Box -->
+          <div style="margin-top: 4px;">
+            <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; display: block; margin-bottom: 6px;">ASCII THERMAL RECEIPT</span>
+            <pre id="r_asciiReceiptBox" class="receipt-font panel-scroll" style="background: #0a0a0a; border: 1px dashed #2a2a2a; padding: 12px; font-size: 11px; line-height: 1.45; color: #d4d4d4; overflow-x: auto; white-space: pre; margin: 0; user-select: all;"></pre>
           </div>
         </div>
 
-        <!-- Primary Action Button -->
-        <button type="submit"
-          class="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 p-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/20 transition hover:from-amber-400 hover:to-orange-400 active:scale-[0.99]">
-          <span>{{ 'Save Changes' if is_edit else 'Add Restaurant Bill' }}</span>
-          <span class="transition group-hover:translate-x-1">→</span>
+        <button type="submit" class="btn btn-solid" style="height: 42px; justify-content: center; font-size: 13px; font-weight: 700; width: 100%; margin-top: 8px;">
+          [{{ 'SAVE CHANGES' if is_edit else 'ADD RESTAURANT BILL' }} →]
         </button>
       </div>
     </div>
@@ -777,25 +636,25 @@
 </div>
 
 <!-- QR Code Popup Modal -->
-<div id="qrModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.85);">
-  <div class="card panel-scroll" style="width: 100%; max-width: 360px; padding: 20px; text-align: center;">
-    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 12px;">
-      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #fff;">SCAN & PAY VIA UPI</span>
+<div id="qrModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.88);">
+  <div class="card" style="width: 100%; max-width: 360px; padding: 20px; text-align: center; border: 1px solid #2a2a2a;">
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
+      <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #fff;">SCAN & PAY VIA UPI</span>
       <button type="button" id="closeQrModal" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
-    <div style="background: #ffffff; padding: 8px; display: inline-block; margin: 0 auto 10px auto; border: 1px solid #2a2a2a;">
+    <div style="background: #ffffff; padding: 8px; display: inline-block; margin: 0 auto 12px auto; border: 1px solid #2a2a2a;">
       <img id="qrModalImg" src="" alt="UPI QR Code" style="width: 180px; height: 180px; display: block; margin: 0 auto;">
     </div>
-    <div style="margin-bottom: 12px;">
-      <p style="font-size: 12px; font-weight: 600; color: #fff; margin: 0;" id="qrModalName"></p>
-      <p class="receipt-font" style="font-size: 18px; font-weight: 700; color: #0A8F20; margin: 4px 0 0 0;" id="qrModalAmount"></p>
-      <p style="font-size: 11px; color: #666; margin: 4px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="qrModalUpi"></p>
+    <div style="margin-bottom: 14px;">
+      <p style="font-size: 13px; font-weight: 600; color: #fff; margin: 0;" id="qrModalName"></p>
+      <p class="receipt-font" style="font-size: 20px; font-weight: 700; color: #0A8F20; margin: 4px 0 0 0;" id="qrModalAmount"></p>
+      <p style="font-size: 11.5px; color: #888; margin: 4px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="qrModalUpi"></p>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 6px;">
-      <a id="qrModalDeepLink" href="#" class="btn btn-solid" style="height: 34px; justify-content: center; font-size: 11px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <a id="qrModalDeepLink" href="#" class="btn btn-solid" style="height: 36px; justify-content: center; font-size: 11.5px;">
         OPEN UPI APP →
       </a>
-      <button type="button" id="copyModalUpiBtn" class="btn btn-dim btn-sm" style="justify-content: center;">
+      <button type="button" id="copyModalUpiBtn" class="btn btn-dim btn-sm" style="justify-content: center; height: 32px;">
         COPY UPI ID
       </button>
     </div>
@@ -803,147 +662,111 @@
 </div>
 
 <!-- Receipt Scanner Modal (100% Free & Local RapidOCR) -->
-<div id="receiptScannerModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.85);">
-  <div class="card panel-scroll" style="width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; padding: 20px;">
+<div id="receiptScannerModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4" style="background: rgba(0, 0, 0, 0.88);">
+  <div class="card panel-scroll" style="width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto; padding: 20px; border: 1px solid #2a2a2a;">
     <!-- Modal Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
         <span class="badge badge-green">LOCAL OCR</span>
         <div>
-          <span style="font-size: 12px; font-weight: 700; color: #fff; text-transform: uppercase;">SMART RECEIPT SCANNER</span>
-          <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">RapidOCR ONNX · Dining, Groceries, Fuel & Cabs</p>
+          <span style="font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase;">SMART RECEIPT SCANNER</span>
+          <p style="font-size: 11px; color: #888; margin: 2px 0 0 0;">RapidOCR ONNX · Dining, Groceries, Fuel & Cabs</p>
         </div>
       </div>
       <button type="button" id="closeScannerModalBtn" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
-    <!-- Modal Body (Scrollable) -->
-    <div class="flex-1 overflow-y-auto p-6 space-y-4">
+    <!-- Modal Body -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
 
-      <!-- Dropzone State (Default) -->
-      <div id="scannerDropzoneState" class="space-y-4">
-        <div id="receiptDropzone"
-          class="group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-sky-400/30 bg-sky-500/[0.03] p-8 text-center transition hover:border-sky-400/60 hover:bg-sky-500/[0.06] cursor-pointer">
-          <input type="file" id="receiptFileInput" accept="image/*" class="sr-only">
-          <div
-            class="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-500/10 text-3xl text-sky-400 transition group-hover:scale-110">
-            🧾
-          </div>
-          <p class="text-sm font-semibold text-white">Click to upload or drag & drop receipt photo</p>
-          <p class="mt-1 text-xs text-slate-400">Supports JPG, PNG, WEBP · RapidOCR local extraction</p>
-          <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <span
-              class="rounded-full bg-emerald-500/10 border border-emerald-400/20 px-2.5 py-1 text-[11px] font-medium text-emerald-300">⚡
-              Local RapidOCR (~0.7s)</span>
-            <span
-              class="rounded-full bg-sky-500/10 border border-sky-400/20 px-2.5 py-1 text-[11px] font-medium text-sky-300">🔒
-              100% Private (0 Cloud Calls)</span>
-            <span
-              class="rounded-full bg-amber-500/10 border border-amber-400/20 px-2.5 py-1 text-[11px] font-medium text-amber-300">₹0
-              Free</span>
+      <!-- Dropzone State -->
+      <div id="scannerDropzoneState" style="display: flex; flex-direction: column; gap: 12px;">
+        <div id="receiptDropzone" style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.15s ease;">
+          <input type="file" id="receiptFileInput" accept="image/*" style="display: none;">
+          <div style="font-size: 32px; margin-bottom: 8px;">🧾</div>
+          <p style="font-size: 13.5px; font-weight: 700; color: #fff; margin: 0 0 4px 0;">CLICK TO UPLOAD OR DRAG & DROP RECEIPT PHOTO</p>
+          <p style="font-size: 11.5px; color: #888; margin: 0 0 14px 0;">Supports JPG, PNG, WEBP · 100% Local RapidOCR Engine</p>
+          <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+            <span class="badge badge-green">⚡ RapidOCR (~0.7s)</span>
+            <span class="badge badge-dim">🔒 100% Private (0 Cloud Calls)</span>
+            <span class="badge badge-dim">₹0 Free</span>
           </div>
         </div>
       </div>
 
-      <!-- Loading / Scanning State -->
-      <div id="scannerLoadingState" class="hidden flex-col items-center justify-center py-12 space-y-4 text-center">
-        <div
-          class="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-500/10 border border-indigo-400/30">
-          <span class="text-3xl animate-bounce">🧾</span>
-          <div
-            class="absolute inset-x-2 h-0.5 bg-gradient-to-r from-transparent via-sky-400 to-transparent animate-pulse top-1/2">
-          </div>
-        </div>
-        <div>
-          <h4 class="text-sm font-semibold text-white">Scanning Receipt Locally...</h4>
-          <p class="text-xs text-slate-400 mt-1">Extracting line items, taxes, voluntary service charge & totals</p>
-        </div>
-        <div class="w-48 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-          <div class="h-full bg-sky-400 rounded-full animate-[pulse_1s_ease-in-out_infinite]"></div>
-        </div>
+      <!-- Loading State -->
+      <div id="scannerLoadingState" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 16px; text-align: center; gap: 12px;">
+        <div style="font-size: 32px;">🧾</div>
+        <p style="font-size: 13px; font-weight: 700; color: #0A8F20; text-transform: uppercase; margin: 0;">SCANNING RECEIPT LOCALLY...</p>
+        <p style="font-size: 11px; color: #888; margin: 0;">Extracting line items, taxes, voluntary service charge & totals</p>
       </div>
 
       <!-- Error State -->
-      <div id="scannerErrorState"
-        class="hidden rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-center space-y-3">
-        <span class="text-2xl block">⚠️</span>
-        <h4 class="text-sm font-semibold text-rose-200">Could not parse receipt</h4>
-        <p id="scannerErrorMessage" class="text-xs text-rose-300/80">Please ensure the photo is clear and well-lit.</p>
-        <button type="button" id="scannerRetryBtn"
-          class="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/20 border border-rose-400/30 px-4 py-2 text-xs font-medium text-rose-200 hover:bg-rose-500/30">
-          Try Another Photo
-        </button>
+      <div id="scannerErrorState" style="display: none; background: #1a0a0a; border: 1px solid #dc2626; padding: 16px; text-align: center;">
+        <span style="font-size: 24px; display: block; margin-bottom: 6px;">⚠️</span>
+        <p style="font-size: 13px; font-weight: 700; color: #dc2626; margin: 0 0 4px 0;">COULD NOT PARSE RECEIPT</p>
+        <p id="scannerErrorMessage" style="font-size: 11.5px; color: #aaa; margin: 0 0 12px 0;">Please ensure photo is clear and well-lit.</p>
+        <button type="button" id="scannerRetryBtn" class="btn btn-sm">TRY ANOTHER PHOTO</button>
       </div>
 
       <!-- Preview State -->
-      <div id="scannerPreviewState" class="hidden space-y-4">
-        <!-- Review Card -->
-        <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span id="previewCategoryBadge" class="rounded-lg px-2.5 py-1 text-xs font-semibold"></span>
-              <span id="previewTitle" class="text-sm font-semibold text-white"></span>
+      <div id="scannerPreviewState" style="display: none; flex-direction: column; gap: 12px;">
+        <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: justify-content: space-between; align-items: center; display: flex;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="previewCategoryBadge" class="badge badge-green"></span>
+              <span id="previewTitle" style="font-size: 13px; font-weight: 700; color: #fff;"></span>
             </div>
-            <span id="previewDate" class="text-xs text-slate-400"></span>
+            <span id="previewDate" style="font-size: 11px; color: #888;"></span>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5 text-xs">
-            <div class="rounded-xl bg-white/5 p-2.5">
-              <span class="text-[10px] text-slate-400 block uppercase">Total Bill</span>
-              <span id="previewTotalBill" class="text-sm font-bold text-white mt-0.5 block"></span>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border-top: 1px solid #1f1f1f; padding-top: 8px;">
+            <div style="background: #141414; padding: 8px; border: 1px solid #2a2a2a;">
+              <span style="font-size: 10px; color: #888; text-transform: uppercase; display: block;">TOTAL BILL</span>
+              <span id="previewTotalBill" class="receipt-font" style="font-size: 14px; font-weight: 700; color: #0A8F20; margin-top: 2px; display: block;"></span>
             </div>
-            <div class="rounded-xl bg-white/5 p-2.5">
-              <span class="text-[10px] text-slate-400 block uppercase">Subtotal</span>
-              <span id="previewSubtotal" class="text-sm font-semibold text-slate-200 mt-0.5 block"></span>
+            <div style="background: #141414; padding: 8px; border: 1px solid #2a2a2a;">
+              <span style="font-size: 10px; color: #888; text-transform: uppercase; display: block;">SUBTOTAL</span>
+              <span id="previewSubtotal" class="receipt-font" style="font-size: 13px; color: #fff; margin-top: 2px; display: block;"></span>
             </div>
-            <div class="rounded-xl bg-white/5 p-2.5">
-              <span class="text-[10px] text-slate-400 block uppercase">Taxes & GST</span>
-              <span id="previewTaxes" class="text-sm font-semibold text-slate-200 mt-0.5 block"></span>
+            <div style="background: #141414; padding: 8px; border: 1px solid #2a2a2a;">
+              <span style="font-size: 10px; color: #888; text-transform: uppercase; display: block;">TAXES</span>
+              <span id="previewTaxes" class="receipt-font" style="font-size: 13px; color: #fff; margin-top: 2px; display: block;"></span>
             </div>
-            <div class="rounded-xl bg-white/5 p-2.5">
-              <span class="text-[10px] text-slate-400 block uppercase">Service Charge</span>
-              <span id="previewServiceCharge" class="text-sm font-semibold text-slate-200 mt-0.5 block"></span>
+            <div style="background: #141414; padding: 8px; border: 1px solid #2a2a2a;">
+              <span style="font-size: 10px; color: #888; text-transform: uppercase; display: block;">SERVICE CHG</span>
+              <span id="previewServiceCharge" class="receipt-font" style="font-size: 13px; color: #fff; margin-top: 2px; display: block;"></span>
             </div>
           </div>
 
-          <div id="previewChecksumBadge"
-            class="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-400/20 px-3 py-1.5 text-xs text-emerald-300">
-            <span>✓</span>
-            <span>Math Verified: Items, taxes and charges balance the paper bill</span>
+          <div id="previewChecksumBadge" class="badge badge-green" style="font-size: 10.5px; padding: 6px 10px;">
+            ✓ Math Verified: Items, taxes & charges balance paper bill
           </div>
 
-          <div id="previewPayerBadge"
-            class="hidden items-center gap-2 rounded-xl bg-sky-500/10 border border-sky-400/20 px-3 py-1.5 text-xs text-sky-300">
-            <span>👤</span>
-            <span>Detected Customer/Payer: <strong id="previewPayerName"></strong></span>
+          <div id="previewPayerBadge" style="display: none; align-items: center; gap: 6px; font-size: 11px; color: #888;">
+            <span>Detected Customer/Payer:</span>
+            <strong id="previewPayerName" style="color: #fff;"></strong>
           </div>
         </div>
 
-        <!-- Line items list preview -->
-        <div id="previewItemsContainer" class="space-y-2">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span class="font-medium uppercase tracking-wider">Detected Line Items (<span
-                id="previewItemsCount">0</span>)</span>
-            <span class="text-[11px] text-slate-500">All items remain 100% editable</span>
+        <!-- Detected Line items -->
+        <div id="previewItemsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase;">DETECTED LINE ITEMS (<span id="previewItemsCount">0</span>)</span>
+            <span style="font-size: 10.5px; color: #666;">All editable</span>
           </div>
-          <div id="previewItemsList" class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-            <!-- Dynamically populated rows -->
-          </div>
+          <div id="previewItemsList" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;" class="panel-scroll"></div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-white/10">
-          <button type="button" id="applyScannedBtn"
-            class="flex-1 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-lg transition hover:from-sky-400 hover:to-indigo-500 active:scale-95 flex items-center justify-center gap-1.5">
-            <span>✨ Apply to Expense</span>
+        <div style="display: flex; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
+          <button type="button" id="applyScannedBtn" class="btn btn-solid" style="flex: 1; height: 38px; justify-content: center; font-size: 12px;">
+            [✨ APPLY TO EXPENSE]
           </button>
-          <button type="button" id="switchItemizedScannedBtn"
-            class="hidden flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-lg transition hover:from-amber-400 hover:to-orange-400 active:scale-95 flex items-center justify-center gap-1.5">
-            <span>🍽️ Switch to Restaurant & Itemize</span>
+          <button type="button" id="switchItemizedScannedBtn" class="btn btn-solid" style="display: none; flex: 1; height: 38px; justify-content: center; font-size: 12px;">
+            [🍽️ SWITCH TO RESTAURANT & ITEMIZE]
           </button>
-          <button type="button" id="cancelScannedBtn"
-            class="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs sm:text-sm font-medium text-slate-300 hover:bg-white/10 transition">
-            Scan Another
+          <button type="button" id="cancelScannedBtn" class="btn btn-dim btn-sm" style="padding: 0 14px;">
+            SCAN ANOTHER
           </button>
         </div>
       </div>
@@ -1074,9 +897,15 @@
   function updateChipStyle(box) {
     const chip = box.closest('.consumer-chip');
     if (!chip) return;
-    const isAmber = currentMode === 'restaurant';
-    chip.classList.toggle(isAmber ? 'border-amber-400/40' : 'border-sky-400/40', box.checked);
-    chip.classList.toggle(isAmber ? 'bg-amber-400/10' : 'bg-sky-400/10', box.checked);
+    if (box.checked) {
+      chip.style.borderColor = '#0A8F20';
+      chip.style.background = '#18241a';
+      chip.style.color = '#ffffff';
+    } else {
+      chip.style.borderColor = '#2a2a2a';
+      chip.style.background = '#0a0a0a';
+      chip.style.color = '#777777';
+    }
   }
 
   document.querySelectorAll('input[name="consumers"]').forEach(box => {
@@ -1177,9 +1006,9 @@
       if (owedListEl) {
         if (isTreat) {
           owedListEl.innerHTML = `
-            <div class="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-center">
-              <p class="text-xs font-semibold text-amber-200">🎁 Hosted as a Treat by ${escapeHtml(payerName)}</p>
-              <p class="text-[11px] text-slate-300 mt-0.5">Friends attend for free! Trip records this expense, but friends owe ₹0.00.</p>
+            <div style="background: #18241a; border: 1px solid #0A8F20; padding: 10px; text-align: center;">
+              <p style="font-size: 12px; font-weight: 700; color: #0A8F20; margin: 0;">🎁 HOSTED AS A TREAT BY ${escapeHtml(payerName)}</p>
+              <p style="font-size: 11px; color: #aaa; margin: 4px 0 0 0;">Friends attend for free · Friends owe ₹0.00.</p>
             </div>
           `;
         } else if (debtorBoxes.length === 0) {
@@ -1188,9 +1017,9 @@
           owedListEl.innerHTML = debtorBoxes.map(cb => {
             const name = getMemberName(cb.value);
             return `
-              <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
-                <span class="text-xs text-white font-medium">${name} owes ${payerName}</span>
-                <span class="text-xs font-bold text-emerald-300">${fmt(perPerson)}</span>
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1a1a1a; padding: 6px 0;">
+                <span style="font-size: 12.5px; color: #fff; font-weight: 500;">${name} owes ${payerName}</span>
+                <span class="receipt-font" style="font-size: 13px; font-weight: 700; color: #0A8F20;">${fmt(perPerson)}</span>
               </div>
             `;
           }).join('');
@@ -1496,17 +1325,17 @@
 
           const consumedTotal = consumedBill + consumedOutside;
           return `
-            <div class="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-2.5">
-              <div class="flex items-center gap-2">
-                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a1a; padding: 6px 0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2a2a2a; font-size: 11px; font-weight: 700; color: #aaa;">${getMemberName(cid).charAt(0).toUpperCase()}</span>
                 <div>
-                  <p class="text-xs font-semibold text-white">${getMemberName(cid)}</p>
-                  <p class="text-[10px] text-slate-400">Items: ${fmt(consumedTotal)}${consumedOutside > 0 ? ` (incl. ${fmt(consumedOutside)} extra)` : ''}</p>
+                  <span style="font-size: 12.5px; font-weight: 600; color: #fff;">${getMemberName(cid)}</span>
+                  <span style="font-size: 11px; color: #666; display: block;">Items: ${fmt(consumedTotal)}${consumedOutside > 0 ? ` (+${fmt(consumedOutside)} extra)` : ''}</span>
                 </div>
               </div>
-              <div class="text-right">
-                <p class="text-xs font-bold ${isTreat && cid !== payerId ? 'text-emerald-300' : 'text-amber-300'}">${isTreat && cid !== payerId ? '₹0.00 <span class="text-[9px] text-amber-300 font-normal">(Treat)</span>' : fmt(finalShare)}</p>
-                <p class="text-[10px] text-slate-400">Net share</p>
+              <div style="text-align: right;">
+                <span class="receipt-font" style="font-size: 13.5px; font-weight: 700; color: #0A8F20;">${isTreat && cid !== payerId ? '₹0.00 (Treat)' : fmt(finalShare)}</span>
+                <span style="font-size: 10px; color: #666; display: block;">net share</span>
               </div>
             </div>
           `;
@@ -1549,33 +1378,33 @@
             if (isTreat) {
               if (isPayer) {
                 return `
-                  <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
-                      <div class="min-w-0">
-                        <p class="text-xs font-medium text-white truncate flex items-center">${getMemberName(cid)} ${payerBadge}</p>
-                        <p class="text-[10px] leading-tight text-amber-300">Host (Pays entire table bill as treat)</p>
+                  <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1a1a1a; padding: 6px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                      <span style="display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2a2a2a; font-size: 11px; font-weight: 700; color: #aaa;">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                      <div style="min-w-0;">
+                        <span style="font-size: 12.5px; font-weight: 600; color: #fff;">${getMemberName(cid)} ${payerBadge}</span>
+                        <span style="font-size: 10.5px; color: #0A8F20; display: block;">Host (Pays entire bill as treat)</span>
                       </div>
                     </div>
-                    <div class="text-right flex-shrink-0 ml-2">
-                      <span class="text-xs font-bold text-amber-300">${fmt(final_)}</span>
-                      <p class="text-[9px] text-slate-500">at table</p>
+                    <div style="text-align: right; flex-shrink: 0; margin-left: 8px;">
+                      <span class="receipt-font" style="font-size: 13.5px; font-weight: 700; color: #0A8F20;">${fmt(final_)}</span>
+                      <span style="font-size: 10px; color: #666; display: block;">at table</span>
                     </div>
                   </div>
                 `;
               } else {
                 return `
-                  <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
-                      <div class="min-w-0">
-                        <p class="text-xs font-medium text-white truncate flex items-center">${getMemberName(cid)}</p>
-                        <p class="text-[10px] leading-tight text-emerald-400">🎁 Treat from ${escapeHtml(payerName)}</p>
+                  <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1a1a1a; padding: 6px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                      <span style="display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2a2a2a; font-size: 11px; font-weight: 700; color: #aaa;">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                      <div style="min-w-0;">
+                        <span style="font-size: 12.5px; font-weight: 600; color: #fff;">${getMemberName(cid)}</span>
+                        <span style="font-size: 10.5px; color: #888; display: block;">🎁 Treat from ${escapeHtml(payerName)}</span>
                       </div>
                     </div>
-                    <div class="text-right flex-shrink-0 ml-2">
-                      <span class="text-xs font-bold text-emerald-300">₹0.00</span>
-                      <p class="text-[9px] text-slate-500">at table</p>
+                    <div style="text-align: right; flex-shrink: 0; margin-left: 8px;">
+                      <span class="receipt-font" style="font-size: 13.5px; font-weight: 700; color: #0A8F20;">₹0.00</span>
+                      <span style="font-size: 10px; color: #666; display: block;">at table</span>
                     </div>
                   </div>
                 `;
@@ -1630,17 +1459,17 @@
             }
 
             return `
-              <div class="flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/40 px-2.5 py-1.5">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-white/10 text-xs font-bold text-slate-300 flex-shrink-0">${getMemberName(cid).charAt(0).toUpperCase()}</span>
-                  <div class="min-w-0">
-                    <p class="text-xs font-medium text-white truncate flex items-center">${getMemberName(cid)} ${payerBadge}</p>
-                    <p class="text-[10px] leading-tight">${subtext}</p>
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #1a1a1a; padding: 6px 0;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <span style="display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: #1a1a1a; border: 1px solid #2a2a2a; font-size: 11px; font-weight: 700; color: #aaa; flex-shrink: 0;">${getMemberName(cid).charAt(0).toUpperCase()}</span>
+                  <div style="min-width: 0;">
+                    <span style="font-size: 12.5px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 4px;">${getMemberName(cid)} ${payerBadge}</span>
+                    <span style="font-size: 10.5px; color: #888; display: block;">${subtext}</span>
                   </div>
                 </div>
-                <div class="text-right flex-shrink-0 ml-2">
-                  ${amountDisplay}
-                  <p class="text-[9px] text-slate-500">at table</p>
+                <div style="text-align: right; flex-shrink: 0; margin-left: 8px;">
+                  <span class="receipt-font" style="font-size: 13.5px; font-weight: 700;">${amountDisplay}</span>
+                  <span style="font-size: 10px; color: #666; display: block;">at table</span>
                 </div>
               </div>
             `;
@@ -1782,11 +1611,15 @@
       const label = box.closest('.item-consumer-chip');
       if (!label) return;
       if (box.checked) {
-        label.classList.add('border-sky-400', 'bg-sky-400/20', 'text-white', 'font-medium');
-        label.classList.remove('border-white/10', 'bg-white/5', 'text-slate-400', 'opacity-50');
+        label.style.borderColor = '#0A8F20';
+        label.style.background = '#18241a';
+        label.style.color = '#ffffff';
+        label.style.fontWeight = '600';
       } else {
-        label.classList.remove('border-sky-400', 'bg-sky-400/20', 'text-white', 'font-medium');
-        label.classList.add('border-white/10', 'bg-white/5', 'text-slate-400', 'opacity-50');
+        label.style.borderColor = '#2a2a2a';
+        label.style.background = '#0a0a0a';
+        label.style.color = '#666666';
+        label.style.fontWeight = 'normal';
       }
     }
 
@@ -1807,7 +1640,7 @@
       const targetConsumers = (consumedBy && consumedBy.length > 0) ? consumedBy : consumers;
       const idx = itemCounter++;
       const div = document.createElement('div');
-      div.className = 'item-row rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3 transition hover:border-white/20';
+      div.className = 'item-row card'; div.style.cssText = 'padding: 14px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px;';
       div.dataset.idx = idx;
 
       const mainPayerId = document.getElementById('r_paid_by')?.value || '';
@@ -1815,53 +1648,50 @@
       const isCustomPayer = paidBy && paidBy !== mainPayerId;
 
       div.innerHTML = `
-        <div class="flex gap-3 items-start">
-          <div class="flex-1">
-            <input type="text" placeholder="Item name (e.g. Biryani, Pizza, Drink, Water)" value="${escapeHtml(name)}" class="item-name h-10 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <div style="flex: 1;">
+            <input type="text" placeholder="Dish name (e.g. Biryani, Pizza, Drink, Cutlet)" value="${escapeHtml(name)}" class="item-name" style="height: 38px;">
           </div>
-          <div class="w-32">
-            <div class="relative">
-              <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400 text-xs">₹</span>
-              <input type="number" min="0" step="0.01" placeholder="0.00" value="${price || ''}" class="item-price h-10 w-full rounded-xl border border-white/10 bg-slate-950/60 pl-7 pr-2 text-sm text-white font-medium outline-none transition placeholder:text-slate-500 focus:border-sky-400/60">
-            </div>
+          <div style="width: 140px; position: relative;">
+            <span style="position: absolute; left: 10px; top: 9px; color: #666; font-size: 13px;">₹</span>
+            <input type="number" min="0" step="0.01" placeholder="0.00" value="${price || ''}" class="item-price" style="padding-left: 26px; height: 38px; font-weight: 700;">
           </div>
-          <button type="button" class="remove-item flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-slate-900/70 text-slate-300 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100" title="Remove item">✕</button>
+          <button type="button" class="remove-item btn btn-danger btn-sm" style="padding: 0 10px; height: 38px;" title="Remove dish">✕</button>
         </div>
 
         <!-- Paid By Selector & Outside Bill Toggle -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/5">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-400 font-medium">💳 Paid by:</span>
-            <select class="item-paid-by h-8 rounded-lg border border-white/10 bg-slate-900 px-2 text-xs text-white outline-none focus:border-amber-400/60">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #1f1f1f; padding-top: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11.5px; color: #888; text-transform: uppercase; font-weight: 600;">PAID BY:</span>
+            <select class="item-paid-by" style="height: 32px; padding: 4px 8px; font-size: 12px; width: auto;">
               <option value="">Table Payer (${escapeHtml(mainPayerName)})</option>
               ${members.map(m => `
-                <option value="${m.id}" ${paidBy === m.id ? 'selected' : ''}>${m.avatar} ${escapeHtml(m.name)}</option>
+                <option value="${m.id}" ${paidBy === m.id ? 'selected' : ''}>${escapeHtml(m.name)}</option>
               `).join('')}
             </select>
           </div>
-          <div class="item-outside-wrapper flex items-center gap-1.5 ${isCustomPayer ? '' : 'hidden'}">
-            <label class="flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-200">
-              <input type="checkbox" class="item-is-outside h-3.5 w-3.5 rounded border-white/20 bg-slate-900 text-amber-500 focus:ring-amber-400" ${isOutside ? 'checked' : ''}>
-              <span>Paid separately outside bill (e.g. bought at counter)</span>
+          <div class="item-outside-wrapper ${isCustomPayer ? '' : 'hidden'}" style="${isCustomPayer ? 'display: flex;' : 'display: none;'} align-items: center; gap: 6px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; background: #141414; border: 1px solid #2a2a2a; font-size: 11px; color: #d4d4d4;">
+              <input type="checkbox" class="item-is-outside" style="accent-color: #0A8F20; width: 14px; height: 14px;" ${isOutside ? 'checked' : ''}>
+              <span>PAID SEPARATELY OUTSIDE BILL</span>
             </label>
           </div>
         </div>
 
         <div>
-          <div class="mb-2 flex items-center justify-between">
-            <p class="text-xs text-slate-400">Who consumed this item?</p>
-            <div class="flex gap-2">
-              <button type="button" class="select-all-item text-[11px] text-sky-400 hover:underline">All</button>
-              <span class="text-slate-600 text-xs">·</span>
-              <button type="button" class="clear-all-item text-[11px] text-slate-400 hover:underline">Clear</button>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; font-weight: 600;">SHARED BY:</span>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="select-all-item btn btn-dim btn-sm" style="padding: 1px 6px; font-size: 10px;">ALL</button>
+              <button type="button" class="clear-all-item btn btn-dim btn-sm" style="padding: 1px 6px; font-size: 10px;">CLEAR</button>
             </div>
           </div>
-          <div class="flex flex-wrap gap-2">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
             ${(consumers.length > 0 ? consumers : members.map(m => m.id)).map(cid => {
               const checked = targetConsumers.includes(cid);
               return `
-                <label class="item-consumer-chip flex cursor-pointer items-center gap-1.5 rounded-xl border ${checked ? 'border-sky-400 bg-sky-400/20 text-white font-medium' : 'border-white/10 bg-white/5 text-slate-400 opacity-50'} px-3 py-1.5 text-xs transition hover:border-sky-400/60">
-                  <input type="checkbox" value="${cid}" class="item-consumer h-3.5 w-3.5 rounded border-white/20 bg-slate-900 text-sky-500" ${checked ? 'checked' : ''}>
+                <label class="item-consumer-chip" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid ${checked ? '#0A8F20' : '#2a2a2a'}; background: ${checked ? '#18241a' : '#0a0a0a'}; color: ${checked ? '#ffffff' : '#666666'}; font-size: 12px; font-weight: ${checked ? '600' : 'normal'}; cursor: pointer;">
+                  <input type="checkbox" value="${cid}" class="item-consumer" style="display: none;" ${checked ? 'checked' : ''}>
                   <span>${getMemberAvatar(cid)}</span>
                   <span>${getMemberName(cid)}</span>
                 </label>
@@ -2588,9 +2418,9 @@
       } else {
         if (itemsContainer) itemsContainer.classList.remove('hidden');
         itemsListEl.innerHTML = items.map((it, idx) => `
-          <div class="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-xs">
-            <span class="text-white font-medium truncate pr-2">${idx + 1}. ${escapeHtml(it.name)}</span>
-            <span class="text-slate-200 font-semibold font-mono shrink-0">${fmt(it.price)}</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #0a0a0a; border: 1px solid #2a2a2a;">
+            <span style="font-size: 12.5px; color: #fff;">${idx + 1}. ${escapeHtml(it.name)}</span>
+            <span class="receipt-font" style="font-size: 13px; font-weight: 700; color: #0A8F20;">${fmt(it.price)}</span>
           </div>
         `).join('');
       }

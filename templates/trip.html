@@ -2,362 +2,420 @@
 {% block title %}TallyUp — {{ trip.name }}{% endblock %}
 
 {% block content %}
-<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 10px 16px;">
+<div style="padding: 14px 20px; max-width: 1440px; margin: 0 auto; width: 100%;">
   
-  <!-- Subheader / Status Bar -->
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; flex-wrap: wrap; gap: 8px;">
-    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-      <a href="{{ url_for('dashboard') }}" class="btn btn-dim btn-sm">← DASHBOARD</a>
-      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em; text-transform: uppercase;">
-        {{ trip.name }}
-      </span>
-      {% if trip.date %}
-      <span style="font-size: 11px; color: #888;">{{ trip.date|format_date }}</span>
-      {% endif %}
-      {% if trip.group_name %}
-      <span class="badge badge-green" style="font-size: 9px;">{{ trip.group_name }}</span>
-      {% endif %}
+  <!-- ═══ TRIP SUBHEADER ═══ -->
+  <div class="card" style="margin-bottom: 14px; padding: 14px 18px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <a href="{{ url_for('dashboard') }}" class="btn btn-dim btn-sm">← DASHBOARD</a>
+          <h1 style="font-size: 16px; font-weight: 700; color: #ffffff; letter-spacing: 0.05em; text-transform: uppercase; margin: 0;">
+            {{ trip.name }}
+          </h1>
+          {% if trip.date %}
+          <span style="font-size: 12px; color: #888888;">{{ trip.date|format_date }}</span>
+          {% endif %}
+          {% if trip.group_name %}
+          <span class="badge badge-green">{{ trip.group_name }}</span>
+          {% endif %}
+        </div>
 
-      <!-- Members chips -->
-      <div style="display: flex; align-items: center; gap: 4px;">
-        {% for m in members %}
-        <span style="font-size: 10px; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 1px 6px; color: #888;">
-          {{ m.avatar }} {{ m.name }}
-        </span>
-        {% endfor %}
-        <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('active')" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 1px 6px;">
-          + EDIT ROSTER
-        </button>
+        <!-- Participants line -->
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+          <span style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.06em;">ROSTER:</span>
+          {% for m in members %}
+          <span class="badge" style="color: #cccccc;">
+            {{ m.avatar }} {{ m.name }}
+          </span>
+          {% endfor %}
+          <button type="button" onclick="document.getElementById('manageMembersModal').classList.add('active')" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
+            + EDIT ROSTER
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- Actions -->
-    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-      <button type="button" id="copyTripBreakdownBtn" class="btn btn-sm" title="Copy ASCII thermal receipt">
-        [COPY ASCII RECEIPT]
-      </button>
-      <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-sm">
-        + EVENT
-      </button>
-      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple') }}" class="btn btn-sm">
-        + SIMPLE
-      </a>
-      <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant') }}" class="btn btn-solid btn-sm">
-        + RESTAURANT BILL
-      </a>
-      <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn btn-dim btn-sm">
-        SETTLE →
-      </a>
-      {% if not trip.is_general %}
-      <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete this trip and all its expenses?')">
-        <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 6px;">✕</button>
-      </form>
-      {% endif %}
+      <!-- Action buttons -->
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button type="button" id="copyTripBreakdownBtn" class="btn btn-solid btn-sm" title="Copy ASCII thermal receipt">
+          [COPY TRIP RECEIPT]
+        </button>
+        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-sm">
+          + ADD EVENT
+        </button>
+        <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn btn-dim btn-sm">
+          SETTLEMENT →
+        </a>
+        {% if not trip.is_general %}
+        <form method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete this trip and all its expenses?')">
+          <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;" title="Delete Trip">✕</button>
+        </form>
+        {% endif %}
+      </div>
     </div>
   </div>
 
-  <!-- 3-Panel Horizontal Layout -->
-  <div style="flex: 1; display: grid; grid-template-columns: 280px 1fr 300px; gap: 10px; overflow: hidden;" class="hidden md:grid" id="desktopTripGrid">
+  <!-- ═══ MAIN 2-COLUMN LAYOUT: EVENTS (LEFT) & SETTLEMENT SIDEBAR (RIGHT) ═══ -->
+  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;" class="lg:grid-cols-[1fr_360px]">
     
-    <!-- ── Panel 1: Events List & Quick Scanner ── -->
-    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0;">
-        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">EVENTS ({{ events|length }})</span>
-        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-sm" style="font-size: 9px; padding: 1px 6px;">
-          + ADD
-        </button>
-      </div>
-
-      <!-- Quick Drag & Drop Receipt Scanner -->
-      <div id="eventReceiptDropzone" style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 10px; text-align: center; cursor: pointer; margin-bottom: 8px; flex-shrink: 0; transition: border-color 0.15s ease;">
-        <input type="file" id="eventReceiptFileInput" accept="image/*" style="display: none;">
-        <div style="font-size: 11px; color: #0A8F20; font-weight: 600; text-transform: uppercase;">
-          [📷 SCAN RECEIPT OCR]
+    <!-- ── LEFT COLUMN: EVENTS WITH NESTED EXPENSES ── -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      
+      <!-- Quick Receipt OCR Dropzone Card -->
+      <div class="card" style="padding: 14px 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
+            FAST EVENT CREATION // LOCAL OCR
+          </span>
+          <span class="badge badge-green">RAPIDOCR (~0.7s)</span>
         </div>
-        <p style="font-size: 9px; color: #666; margin: 2px 0 0 0;">Drag image or click to auto-create</p>
-      </div>
 
-      <!-- Live Loading State for Event Receipt Scanning -->
-      <div id="eventScanLoading" style="display: none; align-items: center; gap: 8px; background: #0a0a0a; border: 1px solid #0A8F20; padding: 8px; margin-bottom: 8px; font-size: 10px; color: #0A8F20;">
-        <span>▪</span>
-        <span>Scanning with local RapidOCR...</span>
-      </div>
-
-      <!-- Scanned Event Preview Card -->
-      <div id="eventScanPreview" style="display: none; background: #0a0a0a; border: 1px solid #0A8F20; padding: 10px; margin-bottom: 8px; flex-direction: column; gap: 6px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span id="eventScanBadge" class="badge badge-green" style="font-size: 9px;"></span>
-          <span id="eventScanAmount" class="receipt-font" style="font-size: 11px; font-weight: 700; color: #fff;"></span>
+        <div id="eventReceiptDropzone" style="background: #0a0a0a; border: 1px dashed #0A8F20; padding: 14px; text-align: center; cursor: pointer; transition: all 0.15s ease;">
+          <input type="file" id="eventReceiptFileInput" accept="image/*" style="display: none;">
+          <div style="font-size: 13px; color: #0A8F20; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">
+            [📷 DRAG & DROP RECEIPT PHOTO HERE, OR CLICK TO BROWSE]
+          </div>
+          <p style="font-size: 11px; color: #888888; margin: 4px 0 0 0;">
+            Auto-detects restaurant, meal type (lunch/dinner), dishes, prices, discounts & taxes.
+          </p>
         </div>
-        <input type="text" id="eventScanNameInput" style="height: 28px; font-size: 11px;">
-        <select id="eventScanTypeSelect" style="height: 28px; font-size: 11px;">
-          {% for key, val in event_types.items() %}
-          <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
-          {% endfor %}
-        </select>
-        <div style="display: flex; gap: 4px; margin-top: 4px;">
-          <button type="button" id="autoSaveEventExpenseBtn" class="btn btn-solid btn-sm" style="flex: 1; justify-content: center; font-size: 9px;">
-            ⚡ SAVE DIRECTLY
-          </button>
-          <button type="button" id="createEventAndSplitBtn" class="btn btn-sm" style="font-size: 9px;">
-            ITEMIZE →
-          </button>
-          <button type="button" id="cancelEventScanBtn" class="btn btn-dim btn-sm" style="padding: 2px 6px;">✕</button>
-        </div>
-      </div>
 
-      <!-- Event Items List -->
-      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px;">
-        {% for event in events %}
-        <div class="event-nav-item" data-event-id="{{ event.id }}" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; transition: border-color 0.15s ease;" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#2a2a2a'">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
-              <span style="font-size: 13px;">{{ event.type_icon }}</span>
-              <span style="font-size: 12px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ event.name }}</span>
+        <!-- Live Loading State for Event Receipt Scanning -->
+        <div id="eventScanLoading" style="display: none; align-items: center; gap: 10px; background: #0a0a0a; border: 1px solid #0A8F20; padding: 10px; margin-top: 8px; font-size: 12px; color: #0A8F20;">
+          <span>▪</span>
+          <span>SCANNING RECEIPT LOCALLY WITH RAPIDOCR... EXTRACTING VENUE & ITEMS</span>
+        </div>
+
+        <!-- Scanned Event Preview Card -->
+        <div id="eventScanPreview" style="display: none; background: #0a0a0a; border: 1px solid #0A8F20; padding: 14px; margin-top: 8px; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="eventScanBadge" class="badge badge-green"></span>
+            <span id="eventScanAmount" class="receipt-font" style="font-size: 13px; font-weight: 700; color: #ffffff;"></span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="display: block; margin-bottom: 4px;">DETECTED EVENT NAME</label>
+              <input type="text" id="eventScanNameInput">
             </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <button type="button" onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')" class="btn btn-dim btn-sm" style="padding: 1px 4px; font-size: 9px;" title="Edit Event">✏️</button>
-              <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Delete event {{ event.name }}?')">
-                <button type="submit" class="btn btn-danger btn-sm" style="padding: 1px 4px; font-size: 9px;" title="Delete">✕</button>
-              </form>
+            <div>
+              <label style="display: block; margin-bottom: 4px;">CATEGORY</label>
+              <select id="eventScanTypeSelect">
+                {% for key, val in event_types.items() %}
+                <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
+                {% endfor %}
+              </select>
             </div>
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: #666;">
-            <span>{{ event.expenses|length }} EXPENSE{{ '' if event.expenses|length == 1 else 'S' }}</span>
-            <span class="receipt-font" style="font-weight: 600; color: #0A8F20;">{{ event.total|currency }}</span>
-          </div>
-          <div style="display: flex; gap: 4px; margin-top: 2px;">
-            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}" class="btn btn-dim btn-sm" style="flex: 1; justify-content: center; font-size: 9px; padding: 1px 4px;">+ SIMPLE</a>
-            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}" class="btn btn-dim btn-sm" style="flex: 1; justify-content: center; font-size: 9px; padding: 1px 4px;">+ DINEOUT</a>
+          <div style="display: flex; gap: 8px; margin-top: 6px;">
+            <button type="button" id="autoSaveEventExpenseBtn" class="btn btn-solid" style="flex: 1; justify-content: center;">
+              ⚡ SAVE EVENT & BILL DIRECTLY
+            </button>
+            <button type="button" id="createEventAndSplitBtn" class="btn">
+              ITEMIZE SPLIT →
+            </button>
+            <button type="button" id="cancelEventScanBtn" class="btn btn-dim" style="padding: 6px 12px;">✕</button>
           </div>
         </div>
-        {% endfor %}
+      </div>
 
-        {% if not events %}
-        <div style="text-align: center; padding: 20px 10px; color: #666; font-size: 11px;">
-          NO EVENTS YET.<br>ADD AN EVENT OR SCAN A RECEIPT ABOVE.
+      <!-- ── EVENTS LIST WITH NESTED EXPENSES ── -->
+      {% for event in events %}
+      <div class="card" style="padding: 16px 18px;" id="event-card-{{ event.id }}">
+        
+        <!-- Event Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">{{ event.type_icon }}</span>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h2 style="font-size: 15px; font-weight: 700; color: #ffffff; text-transform: uppercase; margin: 0; letter-spacing: 0.04em;">
+                  {{ event.name }}
+                </h2>
+                <button type="button" onclick="openEditEventModal('{{ event.id }}', '{{ event.name|escape }}', '{{ event.type }}')" class="btn btn-dim btn-sm" style="padding: 2px 6px;" title="Edit Event Name">
+                  ✏️
+                </button>
+              </div>
+              <div style="font-size: 11.5px; color: #888888; margin-top: 2px;">
+                {{ event.type_label }} · {{ event.expenses|length }} expense{{ '' if event.expenses|length == 1 else 's' }}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="text-align: right; margin-right: 8px;">
+              <span style="font-size: 10px; color: #666; text-transform: uppercase; display: block;">EVENT TOTAL</span>
+              <span class="receipt-font" style="font-size: 16px; font-weight: 700; color: #0A8F20;">{{ event.total|currency }}</span>
+            </div>
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}" class="btn btn-sm">
+              + SIMPLE
+            </a>
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}" class="btn btn-solid btn-sm">
+              + DINEOUT BILL
+            </a>
+            <form method="post" action="{{ url_for('delete_event', trip_id=trip.id, event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Delete event {{ event.name }} and all its expenses?')">
+              <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;" title="Delete Event">✕</button>
+            </form>
+          </div>
         </div>
-        {% endif %}
-      </div>
-    </div>
 
-    <!-- ── Panel 2: Expenses & Itemized Dishes ── -->
-    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0;">
-        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">EXPENSE DETAILS & ITEMIZATION</span>
-        <span class="badge badge-dim">ASCII FORMATTED</span>
-      </div>
-
-      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px;">
-        {% for event in events %}
+        <!-- Expenses List Nested Inside Event -->
+        {% if event.expenses %}
+        <div style="display: flex; flex-direction: column; gap: 12px;">
           {% for exp in event.expenses %}
-          <div class="card" style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 12px;">
-            <!-- Expense Top Bar -->
-            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+          <div style="background: #0a0a0a; border: 1px solid #2a2a2a; padding: 14px 16px;">
+            
+            <!-- Expense Top Line -->
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
               <div>
-                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                  <span class="badge {{ 'badge-green' if exp.mode == 'restaurant' else 'badge-dim' }}" style="font-size: 9px;">
-                    {{ '🍽️ RESTAURANT' if exp.mode == 'restaurant' else 'SIMPLE' }}
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span class="badge {{ 'badge-green' if exp.mode == 'restaurant' else 'badge-dim' }}">
+                    {{ '🍽️ RESTAURANT BILL' if exp.mode == 'restaurant' else '💰 SIMPLE' }}
                   </span>
                   {% if exp.is_treat %}
-                  <span class="badge badge-amber" style="font-size: 9px;">🎁 TREAT</span>
+                  <span class="badge badge-amber">🎁 TREAT</span>
                   {% endif %}
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">{{ exp.description }}</span>
+                  <span style="font-size: 14px; font-weight: 700; color: #ffffff;">{{ exp.description }}</span>
                 </div>
-                <div style="font-size: 10px; color: #666; margin-top: 2px;">
-                  IN EVENT: <strong style="color: #888;">{{ event.name }}</strong> ·
+                
+                <div style="font-size: 12px; color: #888888; margin-top: 4px;">
                   {% if exp.is_treat %}
-                    <span style="color: #d97706;">TREAT BY {{ exp.paid_by_name|upper }} (₹0.00 FROM ATTENDEES)</span>
+                    <span style="color: #d97706; font-weight: 600;">TREAT HOSTED BY {{ exp.paid_by_name|upper }}</span> (Guests owe: ₹0.00) · Diners: {{ exp.consumer_names|join(', ') }}
                   {% else %}
-                    PAID BY <strong style="color: #888;">{{ exp.paid_by_name|upper }}</strong> · DINERS: {{ exp.consumer_names|join(', ') }}
+                    Paid at table by <strong style="color: #ffffff;">{{ exp.paid_by_name }}</strong> · Diners: {{ exp.consumer_names|join(', ') }}
                   {% endif %}
                 </div>
               </div>
+
               <div style="text-align: right; flex-shrink: 0;">
-                <span class="receipt-font" style="font-size: 15px; font-weight: 700; color: #0A8F20;">{{ exp.display_amount|currency }}</span>
+                <span class="receipt-font" style="font-size: 18px; font-weight: 700; color: #0A8F20;">
+                  {{ exp.display_amount|currency }}
+                </span>
               </div>
             </div>
 
-            <!-- Restaurant Meta Badges -->
+            <!-- Restaurant Meta Badges (Offers, Tax, Fees, Coins) -->
             {% if exp.mode == 'restaurant' %}
-            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0;">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 6px 0;">
               {% if exp.discount_percent and exp.discount_percent != '0' %}
-              <span class="badge badge-green" style="font-size: 9px;">{{ exp.discount_percent }}% OFF</span>
+              <span class="badge badge-green">{{ exp.discount_percent }}% OFFER DISCOUNT</span>
+              {% endif %}
+              {% if exp.convenience_fee and exp.convenience_fee != '0' %}
+              <span class="badge badge-amber">+₹{{ exp.convenience_fee }} CONV. FEE</span>
               {% endif %}
               {% if exp.service_charge and exp.service_charge != '0' %}
-              <span class="badge badge-dim" style="font-size: 9px;">SERVICE: ₹{{ exp.service_charge }}</span>
+              <span class="badge badge-dim">SERVICE: ₹{{ exp.service_charge }}</span>
               {% endif %}
               {% if exp.tax_amount and exp.tax_amount != '0' %}
-              <span class="badge badge-dim" style="font-size: 9px;">GST: ₹{{ exp.tax_amount }}</span>
+              <span class="badge badge-dim">TAXES & GST: ₹{{ exp.tax_amount }}</span>
+              {% elif exp.tax_percent and exp.tax_percent != '0' %}
+              <span class="badge badge-dim">TAX: {{ exp.tax_percent }}%</span>
               {% endif %}
               {% if exp.dineout_coins and exp.dineout_coins != '0' %}
-              <span class="badge badge-amber" style="font-size: 9px;">COINS: ₹{{ exp.dineout_coins }} ({{ exp.coins_by_name }})</span>
+              <span class="badge badge-amber">DINECOINS: -₹{{ exp.dineout_coins }} ({{ exp.coins_by_name }})</span>
+              {% endif %}
+              {% if exp.cover_charge_total and exp.cover_charge_total != '0' %}
+              <span class="badge badge-dim">COVER: ₹{{ exp.cover_charge_total }} ({{ exp.cover_paid_by_name }})</span>
               {% endif %}
             </div>
             {% endif %}
 
-            <!-- Itemized Dishes Breakdown -->
+            <!-- Itemized Dishes Table directly under the bill -->
             {% if exp.has_items and exp.enriched_items %}
-            <div style="border-top: 1px solid #2a2a2a; margin-top: 8px; padding-top: 8px;">
-              <button type="button" class="toggle-items-btn btn btn-dim btn-sm" style="font-size: 9px; margin-bottom: 6px;" data-count="{{ exp.enriched_items|length }}">
-                <span class="btn-text">📋 VIEW DISHES ({{ exp.enriched_items|length }})</span>
-              </button>
-              <div class="items-drawer hidden" style="background: #141414; border: 1px solid #2a2a2a; padding: 8px;">
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                  {% for it in exp.enriched_items %}
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0; border-bottom: 1px dashed #222;">
-                    <div>
-                      <span style="color: #fff; font-weight: 500;">{{ it.name }}</span>
-                      <span style="font-size: 9px; color: #666; margin-left: 6px;">({{ it.consumer_names|join(', ') }})</span>
-                    </div>
-                    <span class="receipt-font" style="color: #0A8F20; font-weight: 600;">{{ it.price|currency }}</span>
+            <div style="border-top: 1px solid #1a1a1a; margin-top: 10px; padding-top: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #666; text-transform: uppercase;">
+                  ITEMIZED DISHES ({{ exp.enriched_items|length }})
+                </span>
+              </div>
+              <div style="background: #141414; border: 1px solid #2a2a2a; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;">
+                {% for it in exp.enriched_items %}
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding: 3px 0; border-bottom: 1px dashed #222;">
+                  <div>
+                    <span style="color: #ffffff; font-weight: 500;">{{ it.name }}</span>
+                    <span style="font-size: 11px; color: #777; margin-left: 8px;">↳ ({{ it.consumer_names|join(', ') }})</span>
                   </div>
-                  {% endfor %}
+                  <span class="receipt-font" style="color: #0A8F20; font-weight: 600;">{{ it.price|currency }}</span>
                 </div>
+                {% endfor %}
               </div>
             </div>
             {% endif %}
 
-            <!-- Action Buttons -->
-            <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; border-top: 1px solid #2a2a2a; padding-top: 6px;">
-              <button type="button" class="copy-exp-btn btn btn-sm" data-expense-id="{{ exp.id }}" style="font-size: 9px; padding: 2px 8px;">
-                [COPY ASCII]
-              </button>
-              <a href="{{ url_for('edit_expense', trip_id=trip.id, expense_id=exp.id) }}" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 2px 8px;">
-                EDIT
-              </a>
-              <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete expense?')">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="expense_id" value="{{ exp.id }}">
-                <button type="submit" class="btn btn-danger btn-sm" style="font-size: 9px; padding: 2px 6px;">✕</button>
-              </form>
+            <!-- Expense Actions Footer -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; border-top: 1px solid #2a2a2a; padding-top: 8px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                {% if exp.payer_upi %}
+                <span style="font-size: 11px; color: #666;">UPI: <strong style="color: #0A8F20;">{{ exp.payer_upi }}</strong></span>
+                {% endif %}
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="copy-exp-btn btn btn-sm" data-expense-id="{{ exp.id }}">
+                  [COPY ASCII RECEIPT]
+                </button>
+                <a href="{{ url_for('edit_expense', trip_id=trip.id, expense_id=exp.id) }}" class="btn btn-dim btn-sm">
+                  EDIT
+                </a>
+                <form method="post" action="{{ url_for('add_expense', trip_id=trip.id) }}" style="display: inline;" onsubmit="return confirm('Delete this expense?')">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="expense_id" value="{{ exp.id }}">
+                  <button type="submit" class="btn btn-danger btn-sm" style="padding: 4px 8px;">✕</button>
+                </form>
+              </div>
+            </div>
+
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 24px 10px; background: #0a0a0a; border: 1px dashed #2a2a2a;">
+          <p style="font-size: 12px; color: #666; margin: 0;">NO EXPENSES IN THIS EVENT YET.</p>
+          <div style="display: flex; justify-content: center; gap: 8px; margin-top: 8px;">
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='restaurant', event_id=event.id) }}" class="btn btn-solid btn-sm">+ RESTAURANT BILL</a>
+            <a href="{{ url_for('add_expense', trip_id=trip.id, mode='simple', event_id=event.id) }}" class="btn btn-sm">+ SIMPLE EXPENSE</a>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+
+      {% if not events %}
+      <div class="card" style="text-align: center; padding: 40px 20px;">
+        <p style="font-size: 13px; color: #888; text-transform: uppercase; margin-bottom: 12px;">NO EVENTS IN THIS TRIP YET</p>
+        <button type="button" onclick="document.getElementById('addEventModal').classList.add('active')" class="btn btn-solid">
+          [+ CREATE FIRST EVENT]
+        </button>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- ── RIGHT COLUMN: TRIP ROSTER, BALANCES & SETTLEMENT SIDEBAR ── -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      
+      <!-- Balances Card -->
+      <div class="card" style="padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
+          <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">TRIP BALANCES</span>
+          <span class="badge badge-dim">{{ balances|length }} DINERS</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          {% for row in balances %}
+          {% set is_plus = row.balance > 0 %}
+          {% set is_minus = row.balance < 0 %}
+          <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 14px;">{{ row.avatar }}</span>
+              <span style="font-size: 12.5px; color: #ffffff; font-weight: 500;">{{ row.name }}</span>
+            </div>
+            <div class="receipt-font" style="font-size: 13px; font-weight: 700;">
+              {% if is_plus %}
+              <span style="color: #0A8F20;">+{{ row.balance|currency }}</span>
+              {% elif is_minus %}
+              <span style="color: #d97706;">-{{ (-row.balance)|currency }}</span>
+              {% else %}
+              <span style="color: #666666;">SETTLED</span>
+              {% endif %}
             </div>
           </div>
           {% endfor %}
-        {% endfor %}
-
-        {% if not events %}
-        <div style="text-align: center; padding: 40px 10px; color: #666; font-size: 12px;">
-          NO EXPENSES RECORDED YET.
         </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- ── Panel 3: Balances & Settlement Snapshot ── -->
-    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 12px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0;">
-        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666;">TRIP BALANCES</span>
-        <button type="button" id="copySettlementCardBtn" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 1px 6px;">
-          COPY
-        </button>
       </div>
 
-      <!-- Balances List -->
-      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px;">
-        {% for row in balances %}
-        {% set is_plus = row.balance > 0 %}
-        {% set is_minus = row.balance < 0 %}
-        <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 8px;">
-          <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
-            <span style="font-size: 12px;">{{ row.avatar }}</span>
-            <span style="font-size: 11px; color: #d4d4d4; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.name }}</span>
-          </div>
-          <div class="receipt-font" style="font-size: 11px; font-weight: 600;">
-            {% if is_plus %}
-            <span style="color: #0A8F20;">+{{ row.balance|currency }}</span>
-            {% elif is_minus %}
-            <span style="color: #d97706;">-{{ (-row.balance)|currency }}</span>
-            {% else %}
-            <span style="color: #555;">SETTLED</span>
-            {% endif %}
-          </div>
+      <!-- Settlement Transfers Card -->
+      <div class="card" style="padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px;">
+          <span class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">SETTLEMENT DUES</span>
+          <button type="button" id="copySettlementCardBtn" class="btn btn-dim btn-sm" style="padding: 2px 8px; font-size: 10px;">
+            COPY
+          </button>
         </div>
-        {% endfor %}
 
-        <!-- Minimal Settlement Transfers -->
         {% if transactions %}
-        <div style="border-top: 1px solid #2a2a2a; margin-top: 6px; padding-top: 6px;">
-          <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: #666; display: block; margin-bottom: 4px;">SETTLEMENT DUES</span>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            {% for tx in transactions %}
-              {% if tx.is_settled %}
-              <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 4px 6px; font-size: 10px; opacity: 0.6;">
-                <div>
-                  <span style="text-decoration: line-through; color: #666;">{{ tx.from }} → {{ tx.to }}</span>
-                  <span style="color: #0A8F20; margin-left: 4px;">✓</span>
-                </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          {% for tx in transactions %}
+            {% if tx.is_settled %}
+            <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 6px 10px; font-size: 11.5px; opacity: 0.65;">
+              <div>
+                <span style="text-decoration: line-through; color: #888;">{{ tx.from }} → {{ tx.to }}</span>
+                <span style="color: #0A8F20; margin-left: 6px; font-weight: 700;">✓ PAID</span>
+              </div>
+              <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
+                <input type="hidden" name="transfer_key" value="{{ tx.key }}">
+                <input type="hidden" name="from_name" value="{{ tx.from }}">
+                <input type="hidden" name="to_name" value="{{ tx.to }}">
+                <button type="submit" class="btn btn-dim btn-sm" style="font-size: 9px; padding: 2px 6px;">UNDO</button>
+              </form>
+            </div>
+            {% else %}
+            <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 8px 10px; font-size: 12px;">
+              <div>
+                <span style="color: #d97706; font-weight: 600;">{{ tx.from }}</span>
+                <span style="color: #555;"> owes </span>
+                <span style="color: #0A8F20; font-weight: 600;">{{ tx.to }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="receipt-font" style="font-weight: 700; color: #ffffff;">{{ tx.amount|currency }}</span>
+                {% if tx.to_upi %}
+                <a href="{{ url_for('pay', pa=tx.to_upi, pn=tx.to, am=tx.amount, tn=(trip.name + ' Settlement')) }}" class="btn btn-solid btn-sm" style="font-size: 9px; padding: 2px 6px;">
+                  UPI →
+                </a>
+                {% endif %}
                 <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
                   <input type="hidden" name="transfer_key" value="{{ tx.key }}">
                   <input type="hidden" name="from_name" value="{{ tx.from }}">
                   <input type="hidden" name="to_name" value="{{ tx.to }}">
-                  <button type="submit" class="btn btn-dim btn-sm" style="font-size: 8px; padding: 1px 4px;">UNDO</button>
+                  <input type="hidden" name="amount" value="{{ tx.amount }}">
+                  <button type="submit" class="btn btn-sm" style="font-size: 9px; padding: 2px 6px;" title="Mark as Paid">
+                    ✓
+                  </button>
                 </form>
               </div>
-              {% else %}
-              <div style="display: flex; align-items: center; justify-content: space-between; background: #0a0a0a; border: 1px solid #2a2a2a; padding: 5px 6px; font-size: 10px;">
-                <div>
-                  <span style="color: #d97706;">{{ tx.from }}</span>
-                  <span style="color: #555;"> → </span>
-                  <span style="color: #0A8F20;">{{ tx.to }}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                  <span class="receipt-font" style="font-weight: 700; color: #fff;">{{ tx.amount|currency }}</span>
-                  <form method="post" action="{{ url_for('toggle_settlement', trip_id=trip.id) }}" style="display: inline;">
-                    <input type="hidden" name="transfer_key" value="{{ tx.key }}">
-                    <input type="hidden" name="from_name" value="{{ tx.from }}">
-                    <input type="hidden" name="to_name" value="{{ tx.to }}">
-                    <input type="hidden" name="amount" value="{{ tx.amount }}">
-                    <button type="submit" class="btn btn-sm" style="font-size: 8px; padding: 1px 4px;">✓</button>
-                  </form>
-                </div>
-              </div>
-              {% endif %}
-            {% endfor %}
-          </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 18px 10px; background: #0a0a0a; border: 1px dashed #2a2a2a;">
+          <p style="font-size: 12px; color: #0A8F20; margin: 0; font-weight: 600;">✓ ALL SETTLED</p>
         </div>
         {% endif %}
+
+        <div style="border-top: 1px solid #2a2a2a; padding-top: 12px; margin-top: 12px;">
+          <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn" style="width: 100%; justify-content: center;">
+            FULL SETTLEMENT VIEW →
+          </a>
+        </div>
       </div>
 
-      <div style="border-top: 1px solid #2a2a2a; padding-top: 8px; margin-top: 6px; flex-shrink: 0;">
-        <a href="{{ url_for('trip_settle', trip_id=trip.id) }}" class="btn" style="width: 100%; justify-content: center; height: 32px; font-size: 10px;">
-          FULL SETTLEMENT VIEW →
-        </a>
-      </div>
     </div>
 
   </div>
-
-  <!-- Mobile Stack Fallback -->
-  <div class="block md:hidden panel-scroll" style="flex: 1; overflow-y: auto;">
-    <p style="font-size: 11px; color: #888; margin-bottom: 8px;">Use tabs or scroll in mobile portrait mode.</p>
-    <!-- Simple summary on mobile -->
-  </div>
-
 </div>
 
 <!-- ═══ MODAL: ADD EVENT ═══ -->
 <div id="addEventModal" class="modal-backdrop">
-  <div class="modal-content panel-scroll" style="max-width: 480px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
-      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #fff;">ADD AN EVENT</span>
+  <div class="modal-content" style="max-width: 480px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
+      <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">ADD AN EVENT</span>
       <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
-    <form method="post" action="{{ url_for('create_event', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 12px;">
+    <form method="post" action="{{ url_for('create_event', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 14px;">
       <div>
-        <label for="event_name" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">EVENT NAME</label>
+        <label for="event_name" style="display: block; margin-bottom: 4px;">EVENT NAME</label>
         <input id="event_name" name="event_name" type="text" required maxlength="60" placeholder="e.g. Dinner at Mirabelle, Fuel, Airbnb">
       </div>
       <div>
-        <label for="event_type" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">CATEGORY</label>
+        <label for="event_type" style="display: block; margin-bottom: 4px;">CATEGORY</label>
         <select id="event_type" name="event_type">
           {% for key, val in event_types.items() %}
           <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #2a2a2a; padding-top: 10px;">
+      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
         <button type="button" onclick="document.getElementById('addEventModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
         <button type="submit" class="btn btn-solid">[+ ADD EVENT]</button>
       </div>
@@ -367,47 +425,47 @@
 
 <!-- ═══ MODAL: EDIT EVENT ═══ -->
 <div id="editEventModal" class="modal-backdrop">
-  <div class="modal-content panel-scroll" style="max-width: 440px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
-      <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #fff;">EDIT EVENT</span>
+  <div class="modal-content" style="max-width: 440px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
+      <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">EDIT EVENT</span>
       <button type="button" onclick="closeEditEventModal()" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
-    <form id="editEventForm" method="post" action="" style="display: flex; flex-direction: column; gap: 12px;">
+    <form id="editEventForm" method="post" action="" style="display: flex; flex-direction: column; gap: 14px;">
       <div>
-        <label for="modal_event_name" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">EVENT NAME</label>
+        <label for="modal_event_name" style="display: block; margin-bottom: 4px;">EVENT NAME</label>
         <input id="modal_event_name" name="event_name" type="text" required maxlength="60">
       </div>
       <div>
-        <label for="modal_event_type" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">TYPE</label>
+        <label for="modal_event_type" style="display: block; margin-bottom: 4px;">TYPE</label>
         <select id="modal_event_type" name="event_type">
           {% for key, val in event_types.items() %}
           <option value="{{ key }}">{{ val.icon }} {{ val.label }}</option>
           {% endfor %}
         </select>
       </div>
-      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #2a2a2a; padding-top: 10px;">
+      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
         <button type="button" onclick="closeEditEventModal()" class="btn btn-dim">CANCEL</button>
-        <button type="submit" class="btn btn-solid">SAVE</button>
+        <button type="submit" class="btn btn-solid">SAVE CHANGES</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ═══ MODAL: MANAGE MEMBERS ═══ -->
+<!-- ═══ MODAL: MANAGE ROSTER ═══ -->
 <div id="manageMembersModal" class="modal-backdrop">
-  <div class="modal-content panel-scroll" style="max-width: 520px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 14px;">
+  <div class="modal-content" style="max-width: 540px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; padding-bottom: 10px; margin-bottom: 14px;">
       <div>
-        <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #fff;">TRIP ROSTER</span>
-        <p style="font-size: 10px; color: #666; margin: 2px 0 0 0;">Manage participants for {{ trip.name }}</p>
+        <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: #fff;">TRIP ROSTER</span>
+        <p style="font-size: 11px; color: #888; margin: 2px 0 0 0;">Manage participants for {{ trip.name }}</p>
       </div>
       <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim btn-sm" style="padding: 1px 6px;">✕</button>
     </div>
 
-    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 12px;">
+    <form method="post" action="{{ url_for('manage_trip_members', trip_id=trip.id) }}" style="display: flex; flex-direction: column; gap: 14px;">
       <div>
-        <label style="display: block; font-size: 10px; color: #666; margin-bottom: 6px;">ACTIVE PARTICIPANTS</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 180px; overflow-y: auto;" class="panel-scroll">
+        <label style="display: block; margin-bottom: 6px;">ACTIVE PARTICIPANTS</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 220px; overflow-y: auto;" class="panel-scroll">
           {% for m in all_members %}
           {% set in_trip = m.id in trip.member_ids if trip.member_ids else true %}
           <label class="chip {{ 'active' if in_trip else '' }}" style="justify-content: space-between;">
@@ -418,12 +476,12 @@
         </div>
       </div>
 
-      <div style="border-top: 1px solid #2a2a2a; padding-top: 10px;">
-        <label for="trip_modal_new_members" style="display: block; font-size: 10px; color: #666; margin-bottom: 4px;">+ ADD NEW PEOPLE (COMMA SEPARATED)</label>
+      <div style="border-top: 1px solid #2a2a2a; padding-top: 12px;">
+        <label for="trip_modal_new_members" style="display: block; margin-bottom: 4px;">+ ADD NEW PEOPLE (COMMA SEPARATED)</label>
         <input id="trip_modal_new_members" name="new_members" type="text" placeholder="e.g. Rahul, Sneha">
       </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid #2a2a2a; padding-top: 10px;">
+      <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #2a2a2a; padding-top: 12px;">
         <button type="button" onclick="document.getElementById('manageMembersModal').classList.remove('active')" class="btn btn-dim">CANCEL</button>
         <button type="submit" class="btn btn-solid">SAVE ROSTER</button>
       </div>
@@ -443,24 +501,6 @@
 
 {% block scripts %}
 <script>
-  // ── Items Drawer Toggle ──
-  document.querySelectorAll('.toggle-items-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const drawer = btn.nextElementSibling;
-      const count = btn.dataset.count || '';
-      if (drawer) {
-        const isHidden = drawer.classList.contains('hidden');
-        drawer.classList.toggle('hidden');
-        const textSpan = btn.querySelector('.btn-text');
-        if (textSpan) {
-          textSpan.textContent = isHidden
-            ? `📋 HIDE DISHES (${count})`
-            : `📋 VIEW DISHES (${count})`;
-        }
-      }
-    });
-  });
-
   // ── Edit Event Modal ──
   function openEditEventModal(eventId, eventName, eventType) {
     const modal = document.getElementById('editEventModal');
@@ -490,6 +530,14 @@
 
   // ── ASCII Thermal Receipt Layout Engine ──
   const tripData = JSON.parse(document.getElementById('tripFullData')?.textContent || '{}');
+  const allMembersList = tripData.members || [];
+  const memberNameMap = {};
+  allMembersList.forEach(m => {
+    memberNameMap[m.id] = m.name;
+  });
+  function getMemName(id) {
+    return memberNameMap[id] || id || 'Someone';
+  }
 
   function fmtMoney(n) {
     const val = parseFloat(n) || 0;
@@ -518,7 +566,7 @@
     const doCopy = () => {
       btnElement.textContent = successLabel;
       btnElement.style.background = '#0A8F20';
-      btnElement.style.color = '#fff';
+      btnElement.style.color = '#000000';
       setTimeout(() => {
         btnElement.textContent = originalText;
         btnElement.style.background = '';
@@ -543,6 +591,7 @@
       ta.style.top = '0';
       document.body.appendChild(ta);
       ta.select();
+      ta.setSelectionRange(0, text.length);
       document.execCommand('copy');
       document.body.removeChild(ta);
       if (callback) callback();
@@ -551,7 +600,233 @@
     }
   }
 
-  // Generate Traditional ASCII Trip Receipt
+  // ── FULL COMPREHENSIVE RESTAURANT / SIMPLE EXPENSE RECEIPT GENERATOR ──
+  function generateSingleExpenseBreakdown(expId) {
+    let targetExp = null;
+    (tripData.events || []).forEach(ev => {
+      (ev.expenses || []).forEach(exp => {
+        if (exp.id === expId) targetExp = exp;
+      });
+    });
+    if (!targetExp) return '';
+
+    const lines = [];
+    const desc = (targetExp.description || 'EXPENSE').toUpperCase();
+    const mode = targetExp.mode || 'simple';
+    const payerName = targetExp.paid_by_name || getMemName(targetExp.paid_by) || 'Someone';
+    const payerId = targetExp.paid_by;
+    const consumers = targetExp.consumers || [];
+    const consumerNames = (targetExp.consumer_names && targetExp.consumer_names.length) 
+      ? targetExp.consumer_names 
+      : consumers.map(c => getMemName(c));
+    const numConsumers = consumerNames.length || 1;
+    const isTreat = targetExp.is_treat || false;
+
+    lines.push(divider('='));
+    lines.push(padC('TALLYUP'));
+    lines.push(padC(mode === 'restaurant' ? 'RESTAURANT RECEIPT' : 'EXPENSE RECEIPT'));
+    lines.push(padC(desc));
+    lines.push(divider('='));
+
+    lines.push(padRow('PAID AT TABLE BY:', payerName));
+    lines.push(padRow('DINERS:', `${consumerNames.length} people`));
+    lines.push('Table: ' + consumerNames.join(', '));
+    lines.push(divider('-'));
+
+    if (mode === 'restaurant') {
+      const bill = parseFloat(targetExp.total_bill || targetExp.amount || 0);
+      const discountPct = parseFloat(targetExp.discount_percent || 0);
+      const fee = parseFloat(targetExp.convenience_fee || 0);
+      const serviceCharge = parseFloat(targetExp.service_charge || 0);
+      let tax = parseFloat(targetExp.tax_amount || 0);
+      const taxPct = parseFloat(targetExp.tax_percent || 0);
+      const coins = parseFloat(targetExp.dineout_coins || 0);
+      const coinsOwnerName = getMemName(targetExp.dineout_coins_by || payerId);
+      const includeCoins = targetExp.include_coins_in_split !== false;
+      const cover = parseFloat(targetExp.cover_charge_total || 0) || (parseFloat(targetExp.cover_charge_per_person || 0) * numConsumers);
+      const coverPayerName = getMemName(targetExp.cover_charge_paid_by || targetExp.cover_paid_by || payerId);
+      const coverPayerId = targetExp.cover_charge_paid_by || targetExp.cover_paid_by || payerId;
+      const taxSplitMethod = targetExp.tax_split_method || 'equal';
+
+      const items = targetExp.items || [];
+      let itemsSum = 0;
+      items.forEach(it => { itemsSum += (parseFloat(it.price) || 0); });
+
+      let foodSubtotal = itemsSum > 0 ? itemsSum : Math.max(0, bill - tax - serviceCharge);
+      if (tax === 0 && taxPct > 0) {
+        tax = foodSubtotal * (taxPct / 100);
+      }
+      if (foodSubtotal === 0 && bill > 0) {
+        foodSubtotal = Math.max(0, bill - tax - serviceCharge);
+      }
+
+      const discount = bill * (discountPct / 100);
+      const netBill = Math.max(0, bill - discount + fee);
+      const discountFactor = discountPct < 100 ? (1 - discountPct / 100) : 0;
+      const netFood = foodSubtotal * discountFactor;
+      const netService = serviceCharge * discountFactor;
+      const netTax = Math.max(0, netBill - netFood - netService);
+
+      const targetBill = includeCoins ? Math.max(0, netBill - coins) : netBill;
+      const targetFood = netBill > 0 ? (netFood * (targetBill / netBill)) : 0;
+      const finalPaidAtTable = Math.max(0, netBill - cover - coins);
+
+      lines.push(padRow('FOOD SUBTOTAL:', fmtMoney(foodSubtotal)));
+      if (serviceCharge > 0) {
+        lines.push(padRow('SERVICE CHARGE:', fmtMoney(serviceCharge)));
+      }
+      if (tax > 0) {
+        const effPct = foodSubtotal > 0 ? ((tax / foodSubtotal) * 100).toFixed(1) : taxPct.toFixed(1);
+        lines.push(padRow(`TAXES & GST (${effPct}%):`, fmtMoney(tax)));
+      }
+      lines.push(padRow('TOTAL BILL (PAPER):', fmtMoney(bill)));
+
+      if (discountPct > 0 || fee > 0 || cover > 0 || coins > 0) {
+        lines.push(divider('-'));
+        if (discountPct > 0) {
+          lines.push(padRow(`OFFER DISCOUNT (${discountPct}%):`, '-' + fmtMoney(discount)));
+        }
+        if (fee > 0) {
+          lines.push(padRow('CONVENIENCE FEE:', '+' + fmtMoney(fee)));
+        }
+        lines.push(padRow('NET BILL TO SPLIT:', fmtMoney(netBill)));
+        if (cover > 0) {
+          lines.push(padRow(`TABLE BOOKING (${coverPayerName}):`, '-' + fmtMoney(cover)));
+        }
+        if (coins > 0) {
+          lines.push(padRow(`DINECOINS (${coinsOwnerName}):`, '-' + fmtMoney(coins)));
+        }
+        lines.push(padRow('PAID AT TABLE:', fmtMoney(finalPaidAtTable)));
+      }
+      lines.push(divider('-'));
+
+      // Line Items
+      const shares = {};
+      if (items.length > 0) {
+        lines.push(padC('ITEMIZED DISHES'));
+        const personBillTotals = {};
+        const personOutsideTotals = {};
+        consumers.forEach(cid => { personBillTotals[cid] = 0; personOutsideTotals[cid] = 0; });
+
+        let billItemsSum = 0;
+        items.forEach(it => {
+          const p = parseFloat(it.price) || 0;
+          const cids = (it.consumed_by && it.consumed_by.length > 0) ? it.consumed_by : consumers;
+          const isOut = it.is_outside || false;
+          if (cids.length > 0 && p > 0) {
+            const share = p / cids.length;
+            cids.forEach(cid => {
+              if (isOut) {
+                personOutsideTotals[cid] = (personOutsideTotals[cid] || 0) + share;
+              } else {
+                personBillTotals[cid] = (personBillTotals[cid] || 0) + share;
+              }
+            });
+            if (!isOut) billItemsSum += p;
+          }
+          const sharedBy = cids.map(cid => getMemName(cid)).join(', ');
+          lines.push(padRow(it.name || 'Dish', fmtMoney(p)));
+          lines.push('  ↳ (' + sharedBy + ')');
+        });
+        lines.push(divider('-'));
+
+        consumers.forEach(cid => {
+          const consumedBill = personBillTotals[cid] || 0;
+          const consumedOut = personOutsideTotals[cid] || 0;
+          let billShare = 0;
+          if (billItemsSum > 0) {
+            if (taxSplitMethod === 'proportional') {
+              billShare = consumedBill * (targetBill / billItemsSum);
+            } else {
+              const tShare = targetBill > targetFood ? ((targetBill - targetFood) / numConsumers) : 0;
+              const fShare = targetFood > 0 ? (consumedBill * (targetFood / billItemsSum)) : (consumedBill * (targetBill / billItemsSum));
+              billShare = fShare + tShare;
+            }
+          } else {
+            billShare = targetBill / numConsumers;
+          }
+          shares[cid] = billShare + consumedOut;
+        });
+      } else {
+        const perPerson = targetBill / numConsumers;
+        consumers.forEach(cid => {
+          shares[cid] = perPerson;
+        });
+      }
+
+      if (isTreat) {
+        lines.push(padC('🎁 SPECIAL: HOSTED AS A TREAT'));
+        lines.push(padC(`Paid 100% by ${payerName}`));
+        lines.push(padC('Friends & Guests owe: ₹0.00'));
+      } else {
+        lines.push(padC('INDIVIDUAL NET SHARES'));
+        consumers.forEach(cid => {
+          lines.push(padRow(getMemName(cid), fmtMoney(shares[cid] || 0)));
+        });
+        lines.push(divider('-'));
+
+        lines.push('PAYMENT DUES:');
+        const payerUpi = targetExp.payer_upi || '';
+        consumers.forEach(cid => {
+          if (cid !== payerId) {
+            let advCredit = 0;
+            if (cover > 0 && cid === coverPayerId) advCredit += cover;
+            const netOwed = Math.max(0, (shares[cid] || 0) - advCredit);
+            const mName = getMemName(cid);
+            lines.push(padRow(`- ${mName} owes ${payerName}:`, fmtMoney(netOwed)));
+            if (payerUpi && netOwed > 0) {
+              const cleanUpi = payerUpi.trim();
+              const amtStr = netOwed.toFixed(2);
+              const payLink = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(payerName)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(targetExp.description)}`;
+              lines.push(`  Pay Link: [Pay via UPI](${payLink})`);
+            }
+          }
+        });
+        if (payerUpi) {
+          lines.push(padRow('PAYER UPI:', payerUpi.trim()));
+        }
+      }
+
+    } else {
+      // Simple Mode
+      const totalAmt = parseFloat(targetExp.display_amount || targetExp.amount || 0);
+      lines.push(padRow('TOTAL AMOUNT:', fmtMoney(totalAmt)));
+      lines.push(divider('-'));
+
+      if (isTreat) {
+        lines.push(padC('🎁 SPECIAL: HOSTED AS A TREAT'));
+        lines.push(padC(`Paid 100% by ${payerName}`));
+        lines.push(padC('Friends & Guests owe: ₹0.00'));
+      } else {
+        const perPerson = totalAmt / numConsumers;
+        lines.push(padRow('EQUAL SHARE:', `${fmtMoney(perPerson)} / person`));
+        lines.push(divider('-'));
+        lines.push('PAYMENT DUES:');
+        const payerUpi = targetExp.payer_upi || '';
+        consumers.forEach(cid => {
+          if (cid !== payerId) {
+            const mName = getMemName(cid);
+            lines.push(padRow(`- ${mName} owes ${payerName}:`, fmtMoney(perPerson)));
+            if (payerUpi) {
+              const cleanUpi = payerUpi.trim();
+              const amtStr = perPerson.toFixed(2);
+              const payLink = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(payerName)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(targetExp.description)}`;
+              lines.push(`  Pay Link: [Pay via UPI](${payLink})`);
+            }
+          }
+        });
+        if (payerUpi) {
+          lines.push(padRow('PAYER UPI:', payerUpi.trim()));
+        }
+      }
+    }
+
+    lines.push(divider('='));
+    lines.push(padC('*Auto-generated*'));
+    return lines.join('\n');
+  }
+
+  // ── TRIP RECEIPT GENERATOR ──
   function generateTripTextBreakdown() {
     const trip = tripData.trip || {};
     const events = tripData.events || [];
@@ -565,17 +840,6 @@
     lines.push(padC((trip.name || 'TRIP').toUpperCase()));
     lines.push(divider('='));
 
-    if (trip.date) {
-      let formattedDate = trip.date;
-      const parts = trip.date.split('-');
-      if (parts.length === 3) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const mIdx = parseInt(parts[1], 10) - 1;
-        if (mIdx >= 0 && mIdx < 12) formattedDate = `${parts[2]}-${months[mIdx]}-${parts[0]}`;
-      }
-      lines.push(padRow('DATE:', formattedDate));
-    }
-
     let totalExpensesSum = 0;
     let expenseCount = 0;
     events.forEach(ev => {
@@ -588,30 +852,19 @@
     lines.push(padRow('EVENTS / EXPENSES:', `${events.length} ev / ${expenseCount} exp`));
     lines.push(divider('-'));
 
-    lines.push('EXPENSE BREAKDOWN:');
+    lines.push('EVENT BREAKDOWN:');
     events.forEach((ev, idx) => {
       lines.push(padRow(`${idx + 1}. ${ev.name}`, fmtMoney(ev.total)));
       (ev.expenses || []).forEach(exp => {
         const amt = fmtMoney(exp.display_amount || exp.total_bill || exp.amount || 0);
-        const payer = exp.paid_by_name || 'Someone';
+        const payer = exp.paid_by_name || getMemName(exp.paid_by);
         const consumers = (exp.consumer_names || []).join(', ');
-
         if (exp.is_treat) {
           lines.push(padRow(`   • ${exp.description}`, amt));
-          lines.push(`     [🎁 TREAT BY ${payer.toUpperCase()} · OWE ₹0.00]`);
-          lines.push(`     Attendees: ${consumers}`);
+          lines.push(`     [🎁 TREAT BY ${payer.toUpperCase()} · GUESTS OWE ₹0.00]`);
         } else {
           lines.push(padRow(`   • ${exp.description}`, amt));
-          lines.push(`     Paid by: ${payer}`);
-          lines.push(`     Split among: ${consumers}`);
-        }
-
-        if (exp.mode === 'restaurant') {
-          const parts = [];
-          if (exp.discount_percent && exp.discount_percent !== '0') parts.push(`${exp.discount_percent}% off`);
-          if (exp.service_charge && exp.service_charge !== '0') parts.push(`Service ₹${exp.service_charge}`);
-          if (exp.tax_amount && exp.tax_amount !== '0') parts.push(`GST ₹${exp.tax_amount}`);
-          if (parts.length > 0) lines.push(`     (${parts.join(', ')})`);
+          lines.push(`     Paid by: ${payer} · Split among: ${consumers}`);
         }
       });
     });
@@ -642,7 +895,6 @@
         const amt = fmtMoney(tx.amount);
         const status = tx.is_settled ? '[PAID]' : '[PENDING]';
         lines.push(padRow(`-> ${tx.from} owes ${tx.to}:`, `${amt} ${status}`));
-
         if (!tx.is_settled && tx.to_upi) {
           const upiClean = tx.to_upi.trim();
           const amtStr = parseFloat(tx.amount).toFixed(2);
@@ -657,82 +909,7 @@
     return lines.join('\n');
   }
 
-  // Generate Traditional ASCII Single Expense Receipt
-  function generateSingleExpenseBreakdown(expId) {
-    let targetExp = null;
-    (tripData.events || []).forEach(ev => {
-      (ev.expenses || []).forEach(exp => {
-        if (exp.id === expId) targetExp = exp;
-      });
-    });
-    if (!targetExp) return '';
-
-    const lines = [];
-    const desc = (targetExp.description || 'EXPENSE').toUpperCase();
-    lines.push(divider('='));
-    lines.push(padC('TALLYUP'));
-    lines.push(padC('EXPENSE RECEIPT'));
-    lines.push(padC(desc));
-    lines.push(divider('='));
-
-    const totalAmt = parseFloat(targetExp.display_amount || targetExp.total_bill || targetExp.amount || 0);
-    const payerName = targetExp.paid_by_name || 'Someone';
-    const consumers = targetExp.consumer_names || [];
-
-    lines.push(padRow('PAID BY:', payerName));
-    lines.push(padRow('ATTENDEES:', `${consumers.length} people`));
-    lines.push(`Diners: ${consumers.join(', ')}`);
-    lines.push(divider('-'));
-
-    lines.push(padRow('TOTAL AMOUNT:', fmtMoney(totalAmt)));
-
-    if (targetExp.mode === 'restaurant') {
-      if (targetExp.service_charge && targetExp.service_charge !== '0') {
-        lines.push(padRow('↳ Service Charge:', `₹${targetExp.service_charge}`));
-      }
-      if (targetExp.tax_amount && targetExp.tax_amount !== '0') {
-        lines.push(padRow('↳ Taxes & GST:', `₹${targetExp.tax_amount}`));
-      }
-      if (targetExp.discount_percent && targetExp.discount_percent !== '0') {
-        lines.push(padRow('↳ Discount:', `${targetExp.discount_percent}%`));
-      }
-    }
-
-    lines.push(divider('-'));
-
-    if (targetExp.is_treat) {
-      lines.push(padC('🎁 SPECIAL: HOSTED AS A TREAT'));
-      lines.push(padC(`Paid 100% by ${payerName}`));
-      lines.push(padC('Friends & Guests owe: ₹0.00'));
-    } else {
-      const nConsumers = consumers.length || 1;
-      const perPerson = totalAmt / nConsumers;
-      lines.push(padRow('EQUAL SHARE:', `${fmtMoney(perPerson)} / person`));
-      lines.push(divider('-'));
-      lines.push('PAYMENT DUES:');
-      const payerUpi = targetExp.payer_upi || '';
-      consumers.forEach(name => {
-        if (name !== payerName) {
-          lines.push(padRow(`- ${name} owes ${payerName}:`, fmtMoney(perPerson)));
-          if (payerUpi) {
-            const cleanUpi = payerUpi.trim();
-            const amtStr = perPerson.toFixed(2);
-            const payLink = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(payerName)}&am=${amtStr}&cu=INR&tn=${encodeURIComponent(targetExp.description)}`;
-            lines.push(`  Pay Link: [Pay via UPI](${payLink})`);
-          }
-        }
-      });
-      if (payerUpi) {
-        lines.push(padRow('PAYER UPI:', payerUpi.trim()));
-      }
-    }
-
-    lines.push(divider('='));
-    lines.push(padC('*Auto-generated*'));
-    return lines.join('\n');
-  }
-
-  // Buttons
+  // Hook up copy buttons
   const copyTripBtn = document.getElementById('copyTripBreakdownBtn');
   if (copyTripBtn) {
     copyTripBtn.addEventListener('click', () => {
@@ -838,7 +1015,6 @@
       }
     });
 
-    // Paste screenshot support
     window.addEventListener('paste', (e) => {
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
@@ -972,7 +1148,7 @@
       } catch (e) {
         alert(e.message || 'Failed to auto-create event.');
         createEventAndSplitBtn.disabled = false;
-        createEventAndSplitBtn.textContent = 'ITEMIZE →';
+        createEventAndSplitBtn.textContent = 'ITEMIZE SPLIT →';
       }
     });
   }

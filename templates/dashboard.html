@@ -2,13 +2,13 @@
 {% block title %}TallyUp — Dashboard{% endblock %}
 
 {% block content %}
-<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px 20px;">
   
   <!-- Subheader / Status Bar -->
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em;">TRIPS & OCCASIONS</span>
-      <span class="badge badge-dim">{{ trips|length }} ACTIVE</span>
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <span style="font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.06em; text-transform: uppercase;">TRIPS & OCCASIONS</span>
+      <span class="badge badge-green">{{ trips|length }} ACTIVE</span>
       <div style="display: none; md:display: flex; align-items: center; gap: 6px;" class="hidden md:flex">
         {% for member in members %}
         <span class="badge" style="color: #888;">
@@ -26,10 +26,10 @@
   </div>
 
   <!-- Main Viewport Layout: 2 Columns -->
-  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 12px; overflow: hidden;" class="lg:grid-cols-[1fr_320px]">
+  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;" class="lg:grid-cols-[1fr_340px]">
     
     <!-- Left Column: Trip Cards -->
-    <div class="panel-scroll" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
       {% if trips %}
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px;">
           {% for trip in trips %}
@@ -81,13 +81,13 @@
     </div>
 
     <!-- Right Column: Overall Balance Sidebar -->
-    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; padding: 14px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 10px; flex-shrink: 0;">
-        <span style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666; letter-spacing: 0.08em;">GLOBAL BALANCES</span>
+    <div class="card" style="position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; padding: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; margin-bottom: 12px; flex-shrink: 0;">
+        <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.08em;">GLOBAL BALANCES</span>
         <span class="badge badge-dim">ALL TRIPS</span>
       </div>
 
-      <div class="panel-scroll" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 2px;">
+      <div class="panel-scroll" style="display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 160px); overflow-y: auto;">
         {% for row in balances %}
         {% set is_plus = row.balance > 0 %}
         {% set is_minus = row.balance < 0 %}

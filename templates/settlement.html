@@ -2,17 +2,17 @@
 {% block title %}TallyUp — Settlement{% endblock %}
 
 {% block content %}
-<div style="height: calc(100vh - 36px); display: flex; flex-direction: column; overflow: hidden; padding: 12px 16px;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 16px 20px;">
   
   <!-- Subheader -->
-  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.05em;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #2a2a2a; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <span style="font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.06em; text-transform: uppercase;">
         SETTLEMENT // {{ (trip.name if scope == 'trip' else 'ALL TRIPS')|upper }}
       </span>
       <span class="badge badge-green">{{ 'TRIP SCOPE' if scope == 'trip' else 'GLOBAL' }}</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
       {% if scope == 'trip' %}
         <a href="{{ url_for('trip_view', trip_id=trip.id) }}" class="btn btn-dim btn-sm">← BACK TO TRIP</a>
       {% endif %}
@@ -24,10 +24,10 @@
   </div>
 
   <!-- 2-Panel Layout -->
-  <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 12px; overflow: hidden;" class="lg:grid-cols-[1.1fr_0.9fr]">
+  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;" class="lg:grid-cols-[1.1fr_0.9fr]">
     
     <!-- Left Column: Balances & Simplified Transactions -->
-    <div class="panel-scroll" style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; flex-direction: column; gap: 14px;">
       
       <!-- Net Balances Grid -->
       <div class="card" style="padding: 12px;">
@@ -180,7 +180,7 @@
     </div>
 
     <!-- Right Column: Net Graph & Rules -->
-    <div style="display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+    <div style="position: sticky; top: 16px; align-self: start; display: flex; flex-direction: column; gap: 14px;">
       
       <!-- Net Graph Card -->
       <div class="card" style="padding: 12px; flex-shrink: 0;">
